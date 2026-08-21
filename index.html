@@ -1,0 +1,1320 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Horeca United — het digitale besturingssysteem voor de horeca ondernemer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1f2a24; --muted:#6b7568; --bg:#f6f5f1; --card:#ffffff; --line:#e3e0d5;
+  --brand:#163829; --brand2:#2f6b4c; --positive-bg:#dceee1; --positive-ink:#1f6b44;
+  --warn-bg:#fbe7bd; --warn-ink:#7a5b12; --danger-bg:#f7dede; --danger-ink:#973636;
+  --grey-bg:#eef0eb; --grey-ink:#67705f;
+  --r:16px; --r-sm:10px; --shadow:0 18px 44px rgba(22,56,41,.08);
+  --font-display:'Fraunces', Georgia, serif;
+  --font-body:'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:'IBM Plex Mono', ui-monospace, monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.5}
+h1,h2,h3{font-family:var(--font-display);font-weight:600;margin:0 0 .4em;letter-spacing:-.01em}
+p{margin:0 0 1em;color:var(--muted);line-height:1.65}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:14px}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--brand2);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+.shell{max-width:1180px;margin:0 auto;padding:0 24px}
+.screen{display:none}
+.screen.active{display:block}
+
+/* ---- topbar ---- */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:20px 0}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:600;font-size:21px;color:var(--brand)}
+.logo .mark{width:30px;height:30px;border-radius:8px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:12px;font-weight:500}
+.pill{font-family:var(--font-mono);font-size:11px;letter-spacing:.03em;padding:6px 11px;border-radius:999px;background:var(--positive-bg);color:var(--positive-ink);display:inline-block}
+.topbar-links{display:flex;gap:18px;align-items:center;font-size:14px;color:var(--muted)}
+.topbar-links a{text-decoration:none;cursor:pointer}
+.topbar-links a:hover{color:var(--brand)}
+
+/* ---- buttons ---- */
+.btn{border:0;border-radius:11px;padding:13px 20px;font-weight:600;font-size:14.5px;display:inline-flex;align-items:center;gap:8px;transition:.15s}
+.btn-primary{background:var(--brand);color:#fff}
+.btn-primary:hover{background:var(--brand2)}
+.btn-secondary{background:var(--positive-bg);color:var(--brand)}
+.btn-secondary:hover{background:#cfe6d8}
+.btn-ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+.btn-ghost:hover{border-color:var(--brand2)}
+.btn-sm{padding:9px 13px;font-size:13px;border-radius:9px}
+.btn-block{width:100%;justify-content:center}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+
+/* ---- panels/cards ---- */
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:28px}
+
+/* ---- hero ---- */
+.hero{display:grid;grid-template-columns:1.25fr .8fr;gap:20px;align-items:stretch;margin-top:6px}
+.hero-main{padding:52px 48px}
+.hero-main h1{font-size:42px;line-height:1.1;max-width:16ch}
+.hero-main p{font-size:16.5px;max-width:44ch}
+.hero-side{padding:32px;display:flex;flex-direction:column;justify-content:center;gap:0}
+.metric{padding:16px 0;border-bottom:1px solid var(--line)}
+.metric:last-child{border-bottom:0}
+.metric strong{display:block;font-family:var(--font-mono);font-size:22px;font-weight:500;color:var(--brand)}
+.metric span{font-size:13px;color:var(--muted)}
+
+.today-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.today-badge{font-family:var(--font-mono);font-size:11px;font-weight:500;padding:5px 10px;border-radius:999px;background:var(--brand);color:#fff}
+.today-card{border-radius:12px;padding:14px 16px;border-left:3px solid transparent;background:#fbfaf6;margin-bottom:10px}
+.today-card:last-child{margin-bottom:0}
+.today-card strong{display:block;font-size:14px;margin-bottom:3px}
+.today-card span{font-size:12.5px;color:var(--muted)}
+.today-card--green{border-left-color:var(--brand2);background:var(--positive-bg)}
+.today-card--green strong{color:var(--positive-ink)}
+.today-card--yellow{border-left-color:#d9a53c;background:var(--warn-bg)}
+.today-card--yellow strong{color:var(--warn-ink)}
+.today-card--brand{border-left-color:var(--brand)}
+.today-card--brand strong{color:var(--brand)}
+
+.section{padding:64px 0}
+.section-head{max-width:60ch;margin-bottom:34px}
+.eyebrow{font-family:var(--font-mono);font-size:11.5px;letter-spacing:.05em;color:var(--brand2);text-transform:uppercase;margin-bottom:10px;display:block}
+
+.steps3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.step-card{padding:26px}
+.step-num{font-family:var(--font-mono);font-size:13px;color:var(--brand2);margin-bottom:10px}
+
+.benefits{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.benefit{display:flex;gap:12px;padding:18px;align-items:flex-start}
+.benefit .dot{width:8px;height:8px;border-radius:50%;background:var(--brand2);margin-top:7px;flex-shrink:0}
+.benefit strong{display:block;font-size:14.5px;margin-bottom:3px}
+.benefit p{margin:0;font-size:13.5px}
+
+.subgroup-groups{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.subgroup-group{padding:20px}
+.subgroup-group h3{font-size:15px;margin-bottom:10px}
+.subgroup-group ul{margin:0;padding-left:0;list-style:none;font-size:13.5px;color:var(--muted)}
+.subgroup-group li{padding:4px 0;border-top:1px solid var(--line)}
+.subgroup-group li:first-child{border-top:0}
+
+.trust-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.trust-item{padding:20px;text-align:left}
+.trust-item strong{display:block;font-size:14px;margin-bottom:4px}
+.trust-item p{font-size:13px;margin:0}
+
+.pilot-banner{padding:36px 40px;display:flex;justify-content:space-between;align-items:center;gap:24px;background:var(--brand);border-radius:var(--r);color:#fff}
+.pilot-banner h2{color:#fff;font-size:26px;margin-bottom:6px}
+.pilot-banner p{color:#cfe0d4;margin:0;max-width:44ch}
+
+.cta-final{text-align:center;padding:60px 0}
+.cta-final h2{font-size:30px}
+
+.footer{padding:36px 0 50px;color:var(--muted);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+
+/* ---- wizard ---- */
+.wizard{max-width:840px;margin:34px auto 60px}
+.top-actions{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:14px}
+.step-count{font-family:var(--font-mono);font-size:12.5px;color:var(--muted)}
+.progress{height:8px;background:#e9e7dd;border-radius:999px;overflow:hidden;margin-bottom:28px}
+.progress>div{height:100%;background:var(--brand2);transition:width .3s}
+
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.field label{font-weight:600;font-size:13.5px}
+.field .hint{font-size:12px;color:var(--muted);font-weight:400}
+input[type=text],input[type=email],input[type=tel],input[type=number],select{
+  width:100%;padding:12px 13px;border:1px solid #cfd3c6;border-radius:var(--r-sm);background:#fff;color:var(--ink)
+}
+input:focus,select:focus{border-color:var(--brand2)}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 18px}
+.error-text{color:var(--danger-ink);font-size:12.5px;margin-top:-2px}
+.field.has-error input,.field.has-error select{border-color:var(--danger-ink)}
+
+.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.choice-group{margin-bottom:22px}
+.choice-group h4{font-size:13px;font-family:var(--font-mono);font-weight:500;color:var(--brand2);text-transform:uppercase;letter-spacing:.03em;margin:0 0 10px}
+.tile{border:1px solid var(--line);border-radius:12px;padding:13px 14px;font-size:13.5px;cursor:pointer;transition:.12s;display:flex;align-items:center;gap:9px;background:#fff}
+.tile:hover{border-color:var(--brand2)}
+.tile.selected{border-color:var(--brand2);background:var(--positive-bg);color:var(--brand)}
+.tile .box{width:16px;height:16px;border-radius:5px;border:1.5px solid #b7bfae;flex-shrink:0;position:relative}
+.tile.selected .box{background:var(--brand2);border-color:var(--brand2)}
+.tile.selected .box::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+
+.method-choices{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.method-card{border:1px solid var(--line);border-radius:14px;padding:18px;cursor:pointer;background:#fff}
+.method-card:hover{border-color:var(--brand2)}
+.method-card.selected{border-color:var(--brand2);background:var(--positive-bg)}
+.method-card strong{display:block;font-size:14px;margin-bottom:4px}
+.method-card p{font-size:12.5px;margin:0}
+
+.upload-box{border:1.5px dashed #b9c1ac;border-radius:12px;padding:26px;text-align:center;background:#fbfaf6}
+.upload-box.filled{border-style:solid;border-color:var(--brand2);background:var(--positive-bg)}
+.file-name{font-family:var(--font-mono);font-size:13px;color:var(--brand)}
+
+.note{padding:13px 15px;background:var(--warn-bg);border:1px solid #e9cf8c;border-radius:11px;color:var(--warn-ink);font-size:13px}
+.note-strong{padding:13px 15px;background:var(--danger-bg);border:1px solid #e3b6b6;border-radius:11px;color:var(--danger-ink);font-size:13px}
+.success-box{padding:13px 15px;background:var(--positive-bg);border:1px solid #bcd6c5;border-radius:11px;color:var(--brand);font-size:13px}
+
+.consent-row{display:flex;gap:10px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
+.consent-row:first-child{border-top:0}
+.consent-row input{margin-top:3px}
+.consent-row label{font-size:13px;color:var(--ink)}
+.consent-row .req{color:var(--danger-ink);font-size:11px;font-family:var(--font-mono)}
+
+/* ---- result ---- */
+.result-wrap{max-width:760px;margin:34px auto 70px;text-align:center}
+.result-figure{font-family:var(--font-mono);font-size:42px;color:var(--brand);margin:6px 0 4px}
+.result-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:26px 0;text-align:left}
+.result-stat{padding:16px}
+.result-stat span{font-size:11.5px;color:var(--muted);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.02em}
+.result-stat strong{display:block;font-size:19px;margin-top:4px}
+
+/* ---- dashboard/admin layout ---- */
+.app-layout{display:grid;grid-template-columns:230px 1fr;gap:22px;margin-top:24px;align-items:start}
+.side-nav{padding:18px;position:sticky;top:20px}
+.side-nav .brand-mini{font-family:var(--font-display);font-weight:600;color:var(--brand);font-size:16px;margin-bottom:16px;padding:0 6px}
+.side-nav a{display:flex;align-items:center;gap:9px;padding:10px 11px;border-radius:9px;text-decoration:none;color:var(--muted);font-size:13.5px;margin-bottom:2px}
+.side-nav a:hover{background:#f2f1ea}
+.side-nav a.active{background:var(--positive-bg);color:var(--brand);font-weight:600}
+.side-nav .divider{height:1px;background:var(--line);margin:12px 0}
+
+.content-col{display:flex;flex-direction:column;gap:18px}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.stat{padding:18px}
+.stat span{font-size:11.5px;color:var(--muted);font-family:var(--font-mono);text-transform:uppercase}
+.stat strong{display:block;font-size:24px;margin-top:6px;font-family:var(--font-mono);font-weight:500}
+.stat strong.pos{color:var(--positive-ink)}
+
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.page-head h2{font-size:23px;margin-bottom:2px}
+
+table.table{width:100%;border-collapse:collapse;font-size:13.5px}
+table.table th{text-align:left;padding:11px 12px;color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.02em;border-bottom:1px solid var(--line);font-family:var(--font-mono);font-weight:500}
+table.table td{padding:13px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.table tr:last-child td{border-bottom:0}
+table.table tr.clickable{cursor:pointer}
+table.table tr.clickable:hover{background:#faf9f4}
+
+.badge{padding:5px 10px;border-radius:999px;font-size:11.5px;font-weight:600;display:inline-block;white-space:nowrap}
+.b-green{background:var(--positive-bg);color:var(--positive-ink)}
+.b-yellow{background:var(--warn-bg);color:var(--warn-ink)}
+.b-grey{background:var(--grey-bg);color:var(--grey-ink)}
+.b-red{background:var(--danger-bg);color:var(--danger-ink)}
+
+.leadscore{font-family:var(--font-mono);font-weight:500;font-size:13px}
+.leadscore-bar{width:52px;height:5px;border-radius:3px;background:#e9e7dd;overflow:hidden;display:inline-block;margin-right:7px;vertical-align:middle}
+.leadscore-bar>div{height:100%;background:var(--brand2)}
+
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:4px}
+.toolbar input[type=text]{max-width:260px}
+.toolbar select{max-width:200px}
+
+.empty-state{padding:40px;text-align:center;color:var(--muted)}
+.progress-mini{height:6px;background:#e9e7dd;border-radius:999px;overflow:hidden;width:100%}
+.progress-mini>div{height:100%;background:var(--brand2)}
+
+.nba{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.nba p{margin:0;font-size:13.5px;color:var(--ink)}
+
+.detail-grid{display:grid;grid-template-columns:1.3fr .7fr;gap:16px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;font-size:13.5px}
+.kv div span{display:block;color:var(--muted);font-size:11.5px;font-family:var(--font-mono);text-transform:uppercase;margin-bottom:2px}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px}
+.tag{background:var(--grey-bg);color:var(--grey-ink);font-size:12px;padding:5px 9px;border-radius:8px}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(22,34,26,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.modal-overlay.active{display:flex}
+.modal{background:#fff;border-radius:var(--r);max-width:640px;width:100%;max-height:86vh;overflow:auto;padding:30px;box-shadow:0 30px 70px rgba(0,0,0,.25)}
+.modal-close{float:right;background:none;border:0;font-size:20px;color:var(--muted);cursor:pointer}
+
+@media(max-width:900px){
+  .hero{grid-template-columns:1fr}
+  .steps3,.benefits,.subgroup-groups,.trust-row,.stats-row,.result-grid,.grid2,.choices,.method-choices,.detail-grid{grid-template-columns:1fr!important}
+  .app-layout{grid-template-columns:1fr}
+  .side-nav{position:static;display:flex;overflow-x:auto;gap:4px;padding:10px}
+  .side-nav .brand-mini,.side-nav .divider{display:none}
+  .side-nav a{white-space:nowrap}
+  .hero-main{padding:32px 26px}
+  .hero-main h1{font-size:32px}
+  .pilot-banner{flex-direction:column;text-align:left}
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <div class="topbar">
+    <div class="logo"><span class="mark">HU</span> Horeca United</div>
+    <div class="topbar-links">
+      <a onclick="Router.go('landing')">Home</a>
+      <a onclick="Router.go('dashboard')">Klantdashboard</a>
+      <a onclick="Router.go('admin')">Horeca United beheer</a>
+      <span class="pill">Founding Pilot · demo</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ LANDING ============ -->
+<section id="screen-landing" class="screen active">
+  <div class="shell">
+    <div class="hero">
+      <div class="panel hero-main">
+        <span class="pill">Het digitale besturingssysteem voor de horeca ondernemer</span>
+        <h1 style="margin-top:14px">Van collectief inkopen naar een platform dat continu voor de ondernemer werkt.</h1>
+        <p>Start met één kostenpost. Upload zelf een factuur of machtig Horeca United om de benodigde gegevens namens jouw onderneming op te vragen — jij houdt altijd zelf de controle.</p>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="QuickScan.start()">Start gratis Quick Scan</button>
+          <button class="btn btn-ghost" onclick="Dashboard.open()">Bekijk voorbeeld-dashboard</button>
+        </div>
+      </div>
+      <div class="panel hero-side">
+        <div class="today-head">
+          <h3 style="margin:0;font-size:16px">Vandaag</h3>
+          <span class="today-badge">2 acties</span>
+        </div>
+        <div class="today-card today-card--green">
+          <strong>Nieuw biervoorstel</strong>
+          <span>Geschatte besparing: €6.400 per jaar</span>
+        </div>
+        <div class="today-card today-card--yellow">
+          <strong>Contract loopt af</strong>
+          <span>Telefonie: nog 63 dagen tot actie</span>
+        </div>
+        <div class="today-card today-card--brand">
+          <strong>Totaal bespaard</strong>
+          <span>€18.460 sinds aansluiting</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="shell">
+      <div class="section-head">
+        <span class="eyebrow">Hoe het werkt</span>
+        <h2>Van eerste scan naar volledig kostenoverzicht</h2>
+      </div>
+      <div class="steps3">
+        <div class="panel step-card"><div class="step-num">01 — Scan</div><h3>Vertel ons over je zaak</h3><p>Beantwoord een paar vragen over je onderneming en selecteer de kostenposten die voor jou relevant zijn.</p></div>
+        <div class="panel step-card"><div class="step-num">02 — Analyse</div><h3>Kies je eerste kostenpost</h3><p>Upload zelf een document, of machtig Horeca United om gegevens bij je leverancier op te vragen. Jij bepaalt het tempo.</p></div>
+        <div class="panel step-card"><div class="step-num">03 — Overzicht</div><h3>Bekijk je besparingskansen</h3><p>Je krijgt een indicatieve inschatting en een persoonlijk dashboard dat meegroeit met elke subgroep die je opent.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" style="padding-top:0">
+    <div class="shell">
+      <div class="section-head">
+        <span class="eyebrow">Waarom Horeca United</span>
+        <h2>Eén operating system, niet nog een losse besparingstool</h2>
+      </div>
+      <div class="benefits">
+        <div class="panel benefit"><div class="dot"></div><div><strong>Alle kostencategorieën, één omgeving</strong><p>Van bier en energie tot verzekeringen en kassasystemen — je hoeft niet voor elke besparing een ander platform te openen.</p></div></div>
+        <div class="panel benefit"><div class="dot"></div><div><strong>Jij houdt de regie</strong><p>Machtigingen zijn altijd beperkt tot één subgroep en leverancier, met een geldigheidsduur die je zelf instelt.</p></div></div>
+        <div class="panel benefit"><div class="dot"></div><div><strong>Start licht, groei op eigen tempo</strong><p>Begin met één document. Open volgende subgroepen wanneer het jou uitkomt — geen verplichting om over te stappen.</p></div></div>
+        <div class="panel benefit"><div class="dot"></div><div><strong>Gebouwd voor de horeca</strong><p>Herkenbare kostenposten, realistische bandbreedtes en een aanpak die past bij hoe horecaondernemers werken.</p></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" style="padding-top:0">
+    <div class="shell">
+      <div class="section-head">
+        <span class="eyebrow">Subgroepen</span>
+        <h2>Wat Horeca United voor je in kaart kan brengen</h2>
+      </div>
+      <div class="subgroup-groups" id="subgroupOverview"></div>
+    </div>
+  </div>
+
+  <div class="section" style="padding-top:0">
+    <div class="shell">
+      <div class="pilot-banner">
+        <div>
+          <h2>Founding Pilot</h2>
+          <p>We werken de eerste versie van Horeca United uit samen met 50 tot 100 horecazaken. Als Founding Pilot-deelnemer denk je mee over de richting en profiteer je als eerste van collectieve inkoopvoordelen.</p>
+        </div>
+        <button class="btn btn-secondary" style="background:#fff" onclick="QuickScan.start()">Doe mee als pilotdeelnemer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" style="padding-top:0">
+    <div class="shell">
+      <div class="section-head">
+        <span class="eyebrow">Privacy &amp; vertrouwen</span>
+        <h2>Wat we wel — en nadrukkelijk niet — doen</h2>
+      </div>
+      <div class="trust-row">
+        <div class="panel trust-item"><strong>Eerste scan binnen 5 minuten</strong><p>Zonder verplichtingen, zonder verborgen kosten.</p></div>
+        <div class="panel trust-item"><strong>Start met één document</strong><p>Je hoeft niet meteen je hele administratie te delen.</p></div>
+        <div class="panel trust-item"><strong>Beperkte, intrekbare machtigingen</strong><p>Gekoppeld aan één subgroep, met een zelf gekozen looptijd.</p></div>
+        <div class="panel trust-item"><strong>Geen verplichting om over te stappen</strong><p>Een besparingskans is een advies, geen verplichting.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta-final shell">
+    <h2>Klaar om je eerste besparingskans te vinden?</h2>
+    <p style="max-width:44ch;margin:8px auto 0">Het kost je vijf minuten. Je kiest zelf hoe je begint.</p>
+    <div class="actions" style="justify-content:center">
+      <button class="btn btn-primary" onclick="QuickScan.start()">Start gratis Quick Scan</button>
+    </div>
+  </div>
+
+  <div class="shell footer">
+    <div>Horeca United — Horeca United Operating System. Conceptdemo, geen productieomgeving.</div>
+    <div>Indicatieve berekeningen · geen financieel advies · <a onclick="AdminApp.open()" style="text-decoration:underline;cursor:pointer">Horeca United beheer</a></div>
+  </div>
+</section>
+
+<!-- ============ QUICK SCAN ============ -->
+<section id="screen-scan" class="screen">
+  <div class="shell">
+    <div class="wizard">
+      <div class="top-actions">
+        <div>
+          <span class="pill">Quick Scan</span>
+          <h2 id="scanStepTitle" style="margin-top:10px">Over jouw zaak</h2>
+        </div>
+        <div class="step-count">Stap <span id="scanStepNr">1</span> van 5</div>
+      </div>
+      <div class="progress"><div id="scanProgressBar" style="width:20%"></div></div>
+
+      <!-- STEP 1 -->
+      <div id="scanStep1" class="card scan-step">
+        <div class="grid2">
+          <div class="field">
+            <label for="f_businessType">Type horecazaak</label>
+            <select id="f_businessType">
+              <option>Restaurant</option><option>Café</option><option>Hotel</option><option>Lunchroom</option>
+              <option>Cafetaria / fastservice</option><option>Eventlocatie</option><option>Catering</option><option>Overig</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f_city">Vestigingsplaats</label>
+            <input type="text" id="f_city" placeholder="Bijv. Arnhem">
+            <div class="error-text" id="err_city" style="display:none">Vul een vestigingsplaats in.</div>
+          </div>
+          <div class="field">
+            <label for="f_turnover">Jaaromzet</label>
+            <select id="f_turnover">
+              <option>&lt; €250.000</option><option>€250.000 – €500.000</option><option selected>€500.000 – €1.000.000</option>
+              <option>€1.000.000 – €2.500.000</option><option>&gt; €2.500.000</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f_locations">Aantal vestigingen</label>
+            <select id="f_locations"><option>1</option><option>2</option><option>3 – 5</option><option>6+</option></select>
+          </div>
+          <div class="field">
+            <label for="f_employees">Aantal medewerkers <span class="hint">(optioneel)</span></label>
+            <select id="f_employees"><option value="">— niet opgeven —</option><option>1 – 5</option><option>6 – 15</option><option>16 – 40</option><option>40+</option></select>
+          </div>
+        </div>
+        <div class="actions"><button class="btn btn-primary" onclick="QuickScan.next()">Verder</button></div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div id="scanStep2" class="card scan-step" style="display:none">
+        <p>Selecteer de kostenposten die voor jouw bedrijf relevant zijn. Je hoeft nu nog geen details in te vullen.</p>
+        <div id="subgroupChoices"></div>
+        <div class="error-text" id="err_subgroups" style="display:none">Selecteer minimaal één subgroep.</div>
+        <div class="actions">
+          <button class="btn btn-ghost" onclick="QuickScan.prev()">Terug</button>
+          <button class="btn btn-primary" onclick="QuickScan.next()">Verder</button>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div id="scanStep3" class="card scan-step" style="display:none">
+        <div class="field">
+          <label for="f_primarySubgroup">Kies je eerste analyse</label>
+          <span class="hint">Dit is de subgroep waar we direct mee aan de slag gaan.</span>
+          <select id="f_primarySubgroup" style="margin-top:6px"></select>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="f_supplier">Huidige leverancier</label>
+            <input type="text" id="f_supplier" placeholder="Bijv. Regionale drankenhandel">
+          </div>
+          <div class="field">
+            <label for="f_annualSpend">Geschatte jaarlijkse kosten</label>
+            <select id="f_annualSpend">
+              <option value="4000">&lt; €5.000</option>
+              <option value="9000" selected>€5.000 – €15.000</option>
+              <option value="22000">€15.000 – €30.000</option>
+              <option value="45000">€30.000 – €60.000</option>
+              <option value="80000">&gt; €60.000</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f_contractStatus">Contractstatus</label>
+            <select id="f_contractStatus"><option>Actief contract</option><option>Geen vast contract</option><option>Onbekend</option></select>
+          </div>
+          <div class="field">
+            <label for="f_contractEnd">Looptijd / vermoedelijke einddatum</label>
+            <input type="text" id="f_contractEnd" placeholder="Bijv. december 2026">
+          </div>
+        </div>
+        <div class="field">
+          <label>Bereidheid om over te stappen bij aantoonbaar voordeel</label>
+          <div class="choices" id="switchWillingness" style="grid-template-columns:repeat(3,1fr)">
+            <div class="tile" data-val="ja"><span class="box"></span> Ja</div>
+            <div class="tile" data-val="misschien"><span class="box"></span> Misschien, bij duidelijk voordeel</div>
+            <div class="tile" data-val="nee"><span class="box"></span> Nee, alleen benchmarken</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-ghost" onclick="QuickScan.prev()">Terug</button>
+          <button class="btn btn-primary" onclick="QuickScan.next()">Verder</button>
+        </div>
+      </div>
+
+      <!-- STEP 4 -->
+      <div id="scanStep4" class="card scan-step" style="display:none">
+        <p>Kies hoe je de gegevens voor je eerste analyse aanlevert.</p>
+        <div class="method-choices">
+          <div class="method-card" data-method="upload" onclick="QuickScan.selectMethod('upload')"><strong>Zelf uploaden</strong><p>Factuur, contract, jaarafrekening of offerte.</p></div>
+          <div class="method-card" data-method="request" onclick="QuickScan.selectMethod('request')"><strong>Horeca United vraagt gegevens op</strong><p>Via een beperkte, intrekbare machtiging.</p></div>
+          <div class="method-card" data-method="later" onclick="QuickScan.selectMethod('later')"><strong>Later aanleveren</strong><p>Rond de scan nu af, upload later in je dashboard.</p></div>
+        </div>
+
+        <div id="methodUpload" class="method-panel" style="display:none">
+          <div class="upload-box" id="uploadBox" onclick="document.getElementById('fileInput').click()">
+            <input type="file" id="fileInput" style="display:none" onchange="QuickScan.handleFile(this)">
+            <div id="uploadBoxText">Klik om een bestand te selecteren (factuur, contract, jaarafrekening of offerte)</div>
+          </div>
+        </div>
+
+        <div id="methodRequest" class="method-panel" style="display:none">
+          <div class="note" style="margin-bottom:16px">Deze machtiging geldt uitsluitend voor de geselecteerde subgroep en leverancier, alleen voor gegevens die nodig zijn voor de analyse, en voor een beperkte geldigheidsduur. Ze geeft <strong>geen</strong> toestemming om contracten op te zeggen, leveranciers te wijzigen, nieuwe contracten aan te gaan, betalingen uit te voeren of bestellingen te plaatsen. Daarvoor is later altijd een aparte opdracht of volmacht nodig.</div>
+          <div class="grid2">
+            <div class="field"><label for="f_signName">Naam tekenbevoegde</label><input type="text" id="f_signName"></div>
+            <div class="field"><label for="f_signRole">Functie</label><input type="text" id="f_signRole" placeholder="Bijv. eigenaar"></div>
+            <div class="field"><label for="f_kvk">KvK-nummer</label><input type="text" id="f_kvk" placeholder="8 cijfers"></div>
+            <div class="field"><label for="f_validity">Geldigheidsduur</label><select id="f_validity"><option>30 dagen</option><option selected>60 dagen</option><option>90 dagen</option></select></div>
+          </div>
+          <div class="consent-row">
+            <input type="checkbox" id="f_authConsent">
+            <label for="f_authConsent">Ik machtig Horeca United om namens mijn onderneming gegevens op te vragen bij de hierboven genoemde leverancier, uitsluitend voor de geselecteerde subgroep en binnen de gekozen geldigheidsduur. <span class="req">verplicht</span></label>
+          </div>
+        </div>
+
+        <div id="methodLater" class="method-panel" style="display:none">
+          <div class="success-box">Geen probleem — je kunt de Quick Scan afronden en dit document later toevoegen via je klantdashboard.</div>
+        </div>
+
+        <div class="error-text" id="err_method" style="display:none">Kies een van de drie opties om verder te gaan.</div>
+        <div class="actions">
+          <button class="btn btn-ghost" onclick="QuickScan.prev()">Terug</button>
+          <button class="btn btn-primary" onclick="QuickScan.next()">Verder</button>
+        </div>
+      </div>
+
+      <!-- STEP 5 -->
+      <div id="scanStep5" class="card scan-step" style="display:none">
+        <div class="grid2">
+          <div class="field"><label for="f_companyName">Bedrijfsnaam</label><input type="text" id="f_companyName" placeholder="Bijv. Restaurant Het Stadshuis"></div>
+          <div class="field"><label for="f_contactPerson">Contactpersoon</label><input type="text" id="f_contactPerson"></div>
+          <div class="field"><label for="f_email">E-mailadres</label><input type="email" id="f_email"></div>
+          <div class="field"><label for="f_phone">Telefoonnummer</label><input type="tel" id="f_phone"></div>
+        </div>
+        <div class="error-text" id="err_account" style="display:none">Vul minimaal bedrijfsnaam en e-mailadres in.</div>
+        <div style="margin-top:8px">
+          <div class="consent-row">
+            <input type="checkbox" id="f_consentPrivacy">
+            <label for="f_consentPrivacy">Ik heb kennisgenomen van de privacyverklaring. <span class="req">verplicht</span></label>
+          </div>
+          <div class="consent-row">
+            <input type="checkbox" id="f_consentProcessing">
+            <label for="f_consentProcessing">Ik geef toestemming voor verwerking van mijn gegevens ten behoeve van de Quick Scan. <span class="req">verplicht</span></label>
+          </div>
+          <div class="consent-row">
+            <input type="checkbox" id="f_consentMarketing">
+            <label for="f_consentMarketing">Ik ontvang graag optionele marketingcommunicatie van Horeca United.</label>
+          </div>
+          <div class="consent-row">
+            <input type="checkbox" id="f_consentBenchmark">
+            <label for="f_consentBenchmark">Ik geef Horeca United toestemming om mijn geanonimiseerde gegevens te gebruiken voor benchmarks.</label>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-ghost" onclick="QuickScan.prev()">Terug</button>
+          <button class="btn btn-primary" onclick="QuickScan.complete()">Bekijk mijn voorlopige uitslag</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RESULT ============ -->
+<section id="screen-result" class="screen">
+  <div class="shell">
+    <div class="result-wrap">
+      <span class="pill">Voorlopige uitslag</span>
+      <h2 style="margin-top:14px">Indicatieve potentiële jaarbesparing</h2>
+      <div class="result-figure" id="resultRange">€3.000 – €8.000</div>
+      <p id="resultSummary" style="max-width:48ch;margin:0 auto 6px">Je eerste analyse staat klaar. Horeca United gebruikt deze uitkomst om de meest kansrijke volgende subgroepen te adviseren.</p>
+      <div class="note-strong" style="max-width:48ch;margin:16px auto 0">Deze uitkomst is indicatief. Een definitieve analyse volgt pas na documentcontrole.</div>
+
+      <div class="result-grid">
+        <div class="panel result-stat"><span>Eerste subgroep</span><strong id="resultPrimary">—</strong></div>
+        <div class="panel result-stat"><span>Status analyse</span><strong id="resultStatus">—</strong></div>
+        <div class="panel result-stat"><span>Subgroepen geselecteerd</span><strong id="resultCount">—</strong></div>
+        <div class="panel result-stat"><span>Profiel voltooid</span><strong id="resultProfilePct">—</strong></div>
+      </div>
+
+      <div class="panel card" style="text-align:left">
+        <h3>Aanbevolen volgende subgroepen</h3>
+        <p id="resultRecommendations">—</p>
+      </div>
+
+      <div class="actions" style="justify-content:center">
+        <button class="btn btn-primary" onclick="Dashboard.open()">Open mijn klantdashboard</button>
+        <button class="btn btn-ghost" onclick="Router.go('landing')">Terug naar home</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CUSTOMER DASHBOARD ============ -->
+<section id="screen-dashboard" class="screen">
+  <div class="shell">
+    <div class="app-layout">
+      <nav class="panel side-nav">
+        <div class="brand-mini">Horeca <span style="color:var(--brand2)">United</span></div>
+        <a data-dash="overzicht" class="active" onclick="Dashboard.showTab('overzicht')">Overzicht</a>
+        <a data-dash="subgroepen" onclick="Dashboard.showTab('subgroepen')">Subgroepen</a>
+        <a data-dash="documenten" onclick="Dashboard.showTab('documenten')">Documenten</a>
+        <a data-dash="contracten" onclick="Dashboard.showTab('contracten')">Contracten</a>
+        <a data-dash="besparingen" onclick="Dashboard.showTab('besparingen')">Besparingen</a>
+        <a data-dash="machtigingen" onclick="Dashboard.showTab('machtigingen')">Machtigingen</a>
+        <a data-dash="profiel" onclick="Dashboard.showTab('profiel')">Profiel</a>
+        <div class="divider"></div>
+        <a onclick="Router.go('landing')">← Terug naar home</a>
+        <a onclick="AdminApp.open()">Horeca United beheer</a>
+      </nav>
+
+      <div class="content-col">
+        <div class="page-head">
+          <div>
+            <h2 id="dashCompanyName">Voorbeeld Horecazaak</h2>
+            <p style="margin:0">Klantdashboard · Founding Pilot deelnemer</p>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="DemoData.reset()">Demo-invoer resetten</button>
+        </div>
+
+        <div class="stats-row">
+          <div class="panel stat"><span>Potentiële besparing</span><strong class="pos" id="dashPotential">—</strong></div>
+          <div class="panel stat"><span>Gerealiseerde besparing</span><strong id="dashRealized">€0</strong></div>
+          <div class="panel stat"><span>Subgroepen geanalyseerd</span><strong id="dashAnalyzed">—</strong></div>
+          <div class="panel stat"><span>Profiel voltooid</span><strong id="dashProfilePct">—</strong></div>
+        </div>
+
+        <!-- TAB: overzicht -->
+        <div id="dashTab-overzicht" class="dash-tab">
+          <div class="panel card">
+            <div class="page-head" style="margin-bottom:10px"><h3 style="margin:0">Voortgang van je profiel</h3><span id="dashProfilePct2" class="step-count">—</span></div>
+            <div class="progress-mini"><div id="dashProfileBar" style="width:20%"></div></div>
+          </div>
+          <div class="panel card">
+            <h3>Jouw subgroepen</h3>
+            <table class="table"><thead><tr><th>Subgroep</th><th>Status</th><th>Kansscore</th><th>Actie</th></tr></thead><tbody id="dashSubgroupTableShort"></tbody></table>
+          </div>
+          <div class="panel card nba">
+            <div>
+              <h3 style="margin-bottom:4px">Volgende beste actie</h3>
+              <p id="dashNextAction">Open een volgende subgroep om je profiel te completeren.</p>
+            </div>
+            <button class="btn btn-primary" onclick="Dashboard.showTab('subgroepen')">Bekijk subgroepen</button>
+          </div>
+        </div>
+
+        <!-- TAB: subgroepen -->
+        <div id="dashTab-subgroepen" class="dash-tab" style="display:none">
+          <div class="panel card">
+            <h3>Alle subgroepen</h3>
+            <table class="table"><thead><tr><th>Naam</th><th>Leverancier</th><th>Jaarkosten</th><th>Status</th><th>Kans</th><th>Contracteinde</th><th>Actie</th></tr></thead><tbody id="dashSubgroupTableFull"></tbody></table>
+          </div>
+        </div>
+
+        <!-- TAB: documenten -->
+        <div id="dashTab-documenten" class="dash-tab" style="display:none">
+          <div class="panel card">
+            <h3>Documenten</h3>
+            <div id="dashDocuments"></div>
+            <p style="margin-top:14px" class="hint">Upload aanvullende documenten vanuit een subgroep om je profiel te versterken.</p>
+          </div>
+        </div>
+
+        <!-- TAB: contracten -->
+        <div id="dashTab-contracten" class="dash-tab" style="display:none">
+          <div class="panel card">
+            <h3>Aankomende contractmomenten</h3>
+            <table class="table"><thead><tr><th>Subgroep</th><th>Leverancier</th><th>Einddatum</th><th>Status</th></tr></thead><tbody id="dashContractTable"></tbody></table>
+          </div>
+        </div>
+
+        <!-- TAB: besparingen -->
+        <div id="dashTab-besparingen" class="dash-tab" style="display:none">
+          <div class="panel card">
+            <h3>Besparingsoverzicht</h3>
+            <p>Indicatieve potentiële besparing per geanalyseerde subgroep. Definitieve bedragen volgen na documentcontrole en eventueel leveranciersvoorstel.</p>
+            <table class="table"><thead><tr><th>Subgroep</th><th>Indicatieve besparing</th><th>Status</th></tr></thead><tbody id="dashSavingsTable"></tbody></table>
+          </div>
+        </div>
+
+        <!-- TAB: machtigingen -->
+        <div id="dashTab-machtigingen" class="dash-tab" style="display:none">
+          <div class="panel card">
+            <h3>Machtigingen</h3>
+            <p>Machtigingen zijn altijd beperkt tot één subgroep en leverancier en kunnen op elk moment worden ingetrokken.</p>
+            <table class="table"><thead><tr><th>Subgroep</th><th>Leverancier</th><th>Gegeven op</th><th>Geldig tot</th><th>Status</th><th>Opgevraagde gegevens</th><th></th></tr></thead><tbody id="dashAuthTable"></tbody></table>
+          </div>
+        </div>
+
+        <!-- TAB: profiel -->
+        <div id="dashTab-profiel" class="dash-tab" style="display:none">
+          <div class="panel card">
+            <h3>Bedrijfsprofiel</h3>
+            <div class="kv" id="dashProfileKv"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ADMIN ============ -->
+<section id="screen-admin" class="screen">
+  <div class="shell">
+    <div class="app-layout">
+      <nav class="panel side-nav">
+        <div class="brand-mini">Horeca United <span style="color:var(--brand2)">beheer</span></div>
+        <a class="active">Pilot-overzicht</a>
+        <a>Leads</a>
+        <a>Ondernemingen</a>
+        <a>Subgroepen</a>
+        <a>Documenten</a>
+        <a>Analyses</a>
+        <a>Contractmomenten</a>
+        <a>Machtigingen</a>
+        <a>Leveranciers</a>
+        <a>Collectieve kansen</a>
+        <div class="divider"></div>
+        <a onclick="Dashboard.open()">← Klantdashboard</a>
+        <a onclick="Router.go('landing')">Home</a>
+      </nav>
+
+      <div class="content-col">
+        <div class="page-head">
+          <div><span class="pill">Founding Pilot</span><h2 style="margin-top:8px">Pilot-overzicht — leads &amp; analyse</h2></div>
+        </div>
+
+        <div class="stats-row">
+          <div class="panel stat"><span>Pilotdeelnemers</span><strong id="admKpiParticipants">63</strong></div>
+          <div class="panel stat"><span>Met ≥1 document</span><strong id="admKpiDocs">41</strong></div>
+          <div class="panel stat"><span>Kansrijke leads</span><strong id="admKpiHot">27</strong></div>
+          <div class="panel stat"><span>Potentiële poolwaarde</span><strong id="admKpiPool">€2,4 mln</strong></div>
+        </div>
+        <div class="stats-row">
+          <div class="panel stat"><span>Totale jaarkosten in kaart</span><strong id="admKpiTotalCosts">—</strong></div>
+          <div class="panel stat"><span>Aankomende contractmomenten</span><strong id="admKpiContracts">—</strong></div>
+          <div class="panel stat"><span>Gem. profielvoltooiing</span><strong id="admKpiAvgProfile">—</strong></div>
+          <div class="panel stat"><span>Actieve pilotklanten</span><strong id="admKpiActive">—</strong></div>
+        </div>
+
+        <div class="panel card">
+          <div class="toolbar">
+            <input type="text" id="admSearch" placeholder="Zoek op bedrijfsnaam of plaats…" oninput="AdminApp.renderLeads()">
+            <select id="admFilterPhase" onchange="AdminApp.renderLeads()">
+              <option value="">Alle fases</option>
+              <option>Quick Scan gestart</option><option>Nieuwe lead</option><option>Actieve pilotklant</option>
+              <option>Kansrijke lead</option><option>Multi-subgroepklant</option><option>Conversieklaar</option><option>Actieve Horeca United-klant</option>
+            </select>
+            <select id="admSort" onchange="AdminApp.renderLeads()">
+              <option value="score_desc">Sorteer: leadscore (hoog–laag)</option>
+              <option value="potential_desc">Sorteer: potentieel (hoog–laag)</option>
+              <option value="name_asc">Sorteer: bedrijfsnaam (A–Z)</option>
+            </select>
+          </div>
+          <table class="table">
+            <thead><tr>
+              <th>Onderneming</th><th>Type / plaats</th><th>Vest.</th><th>1e subgroep</th><th># subgroepen</th>
+              <th>Jaarkosten</th><th>Potentieel</th><th>Overstap</th><th>Leadscore</th><th>Fase</th><th>Volgende actie</th>
+            </tr></thead>
+            <tbody id="admLeadTable"></tbody>
+          </table>
+          <div id="admEmpty" class="empty-state" style="display:none">Geen ondernemingen gevonden voor deze filters.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MODAL: business detail ============ -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <button class="modal-close" onclick="AdminApp.closeDetail()">&times;</button>
+    <div id="detailModalContent"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   Horeca United demo — data, state, rendering
+   ========================================================= */
+
+const SUBGROUPS = [
+  {id:"bier", group:"Dranken", name:"Bier"},
+  {id:"frisdrank", group:"Dranken", name:"Frisdrank"},
+  {id:"foodgroothandel", group:"Food en dagelijkse inkoop", name:"Foodgroothandel"},
+  {id:"vis", group:"Food en dagelijkse inkoop", name:"Vis"},
+  {id:"vlees", group:"Food en dagelijkse inkoop", name:"Vlees"},
+  {id:"energie", group:"Nutsvoorzieningen en vaste lasten", name:"Energie"},
+  {id:"afval", group:"Nutsvoorzieningen en vaste lasten", name:"Afval"},
+  {id:"internet", group:"Nutsvoorzieningen en vaste lasten", name:"Internet en telefonie"},
+  {id:"muzieklicentie", group:"Nutsvoorzieningen en vaste lasten", name:"Muzieklicentie"},
+  {id:"verzekeringen", group:"Financiële diensten", name:"Verzekeringen"},
+  {id:"betaalverkeer", group:"Financiële diensten", name:"Betaalverkeer"},
+];
+const GROUP_ORDER = ["Dranken","Food en dagelijkse inkoop","Nutsvoorzieningen en vaste lasten","Financiële diensten"];
+function subgroupName(id){ const s=SUBGROUPS.find(x=>x.id===id); return s?s.name:id; }
+
+const STORAGE_KEY = "huos_demo_state_v1";
+
+function euro(n){ return new Intl.NumberFormat("nl-NL",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Math.max(0,Math.round(n))); }
+
+function defaultState(){
+  return {
+    profile: { businessType:"Restaurant", city:"", turnover:"€500.000 – €1.000.000", locations:"1", employees:"" },
+    selectedSubgroups: ["energie","afval","bier","betaalverkeer","verzekeringen"],
+    primary: { subgroupId:"energie", supplier:"", annualSpend:9000, contractStatus:"Actief contract", contractEnd:"", willingness:"misschien" },
+    method: "upload",
+    uploadFileName: "",
+    authorization: { signName:"", signRole:"", kvk:"", validity:"60 dagen", consent:false },
+    account: { companyName:"", contactPerson:"", email:"", phone:"" },
+    consents: { privacy:false, processing:false, marketing:false, benchmark:false },
+    result: null,
+    completed: false
+  };
+}
+
+let STATE = loadState();
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    return Object.assign(defaultState(), parsed);
+  }catch(e){ return defaultState(); }
+}
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE)); }catch(e){}
+}
+
+/* ---------------- Router ---------------- */
+const SCREENS = ["landing","scan","result","dashboard","admin"];
+const Router = {
+  go(id){
+    SCREENS.forEach(s=>document.getElementById("screen-"+s).classList.remove("active"));
+    document.getElementById("screen-"+id).classList.add("active");
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+};
+
+/* ---------------- Landing: subgroup overview ---------------- */
+function renderSubgroupOverview(){
+  const box = document.getElementById("subgroupOverview");
+  box.innerHTML = GROUP_ORDER.map(g=>{
+    const items = SUBGROUPS.filter(s=>s.group===g);
+    return `<div class="panel subgroup-group"><h3>${g}</h3><ul>${items.map(i=>`<li>${i.name}</li>`).join("")}</ul></div>`;
+  }).join("");
+}
+
+/* ---------------- Quick Scan ---------------- */
+const QuickScan = {
+  step: 1,
+  start(){
+    this.step = 1;
+    this.renderCategoryTiles();
+    this.render();
+    Router.go("scan");
+  },
+  render(){
+    document.querySelectorAll(".scan-step").forEach(el=>el.style.display="none");
+    document.getElementById("scanStep"+this.step).style.display="block";
+    document.getElementById("scanStepNr").textContent = this.step;
+    document.getElementById("scanProgressBar").style.width = (this.step*20)+"%";
+    const titles = ["Over jouw zaak","Relevante subgroepen","Eerste gratis analyse","Gegevens aanleveren","Account en privacy"];
+    document.getElementById("scanStepTitle").textContent = titles[this.step-1];
+    if(this.step===3) this.fillPrimarySelect();
+    if(this.step===4) this.applyMethodUI();
+  },
+  next(){
+    if(this.step===1){
+      const city = document.getElementById("f_city").value.trim();
+      document.getElementById("err_city").style.display = city ? "none":"block";
+      if(!city){ document.getElementById("f_city").focus(); return; }
+      STATE.profile = {
+        businessType: document.getElementById("f_businessType").value,
+        city, turnover: document.getElementById("f_turnover").value,
+        locations: document.getElementById("f_locations").value,
+        employees: document.getElementById("f_employees").value
+      };
+    }
+    if(this.step===2){
+      if(this.selected.size===0){ document.getElementById("err_subgroups").style.display="block"; return; }
+      document.getElementById("err_subgroups").style.display="none";
+      STATE.selectedSubgroups = [...this.selected];
+    }
+    if(this.step===3){
+      STATE.primary = {
+        subgroupId: document.getElementById("f_primarySubgroup").value,
+        supplier: document.getElementById("f_supplier").value.trim(),
+        annualSpend: Number(document.getElementById("f_annualSpend").value),
+        contractStatus: document.getElementById("f_contractStatus").value,
+        contractEnd: document.getElementById("f_contractEnd").value.trim(),
+        willingness: this.willingness || "misschien"
+      };
+    }
+    if(this.step===4){
+      const m = this.method;
+      if(!m){ document.getElementById("err_method").style.display="block"; return; }
+      if(m==="request" && !document.getElementById("f_authConsent").checked){
+        document.getElementById("err_method").textContent = "Bevestig de machtiging om verder te gaan.";
+        document.getElementById("err_method").style.display="block"; return;
+      }
+      document.getElementById("err_method").style.display="none";
+      STATE.method = m;
+      if(m==="request"){
+        STATE.authorization = {
+          signName: document.getElementById("f_signName").value.trim(),
+          signRole: document.getElementById("f_signRole").value.trim(),
+          kvk: document.getElementById("f_kvk").value.trim(),
+          validity: document.getElementById("f_validity").value,
+          consent: true
+        };
+      }
+    }
+    if(this.step<5){ this.step++; this.render(); saveState(); }
+  },
+  prev(){ if(this.step>1){ this.step--; this.render(); } },
+
+  selected: new Set(["energie","afval","bier","betaalverkeer","verzekeringen"]),
+  renderCategoryTiles(){
+    this.selected = new Set(STATE.selectedSubgroups);
+    const box = document.getElementById("subgroupChoices");
+    box.innerHTML = GROUP_ORDER.map(g=>{
+      const items = SUBGROUPS.filter(s=>s.group===g);
+      return `<div class="choice-group"><h4>${g}</h4><div class="choices">${items.map(i=>`
+        <div class="tile ${this.selected.has(i.id)?'selected':''}" data-id="${i.id}" onclick="QuickScan.toggle('${i.id}')">
+          <span class="box"></span>${i.name}
+        </div>`).join("")}</div></div>`;
+    }).join("");
+  },
+  toggle(id){
+    if(this.selected.has(id)) this.selected.delete(id); else this.selected.add(id);
+    const tile = document.querySelector(`#subgroupChoices .tile[data-id="${id}"]`);
+    tile.classList.toggle("selected");
+  },
+  fillPrimarySelect(){
+    const sel = document.getElementById("f_primarySubgroup");
+    const current = STATE.primary.subgroupId;
+    sel.innerHTML = [...this.selected].map(id=>`<option value="${id}" ${id===current?'selected':''}>${subgroupName(id)}</option>`).join("");
+    document.getElementById("f_supplier").value = STATE.primary.supplier||"";
+    document.getElementById("f_contractEnd").value = STATE.primary.contractEnd||"";
+    if(STATE.primary.annualSpend) document.getElementById("f_annualSpend").value = STATE.primary.annualSpend;
+    document.getElementById("f_contractStatus").value = STATE.primary.contractStatus||"Actief contract";
+    this.willingness = STATE.primary.willingness || "misschien";
+    document.querySelectorAll("#switchWillingness .tile").forEach(t=>{
+      t.classList.toggle("selected", t.dataset.val===this.willingness);
+      t.onclick = ()=>{ this.willingness = t.dataset.val; document.querySelectorAll("#switchWillingness .tile").forEach(x=>x.classList.remove("selected")); t.classList.add("selected"); };
+    });
+  },
+  method: null,
+  selectMethod(m){
+    this.method = m;
+    document.querySelectorAll(".method-card").forEach(c=>c.classList.toggle("selected", c.dataset.method===m));
+    this.applyMethodUI();
+  },
+  applyMethodUI(){
+    ["upload","request","later"].forEach(m=>{
+      document.getElementById("method"+m.charAt(0).toUpperCase()+m.slice(1)).style.display = (this.method===m)?"block":"none";
+    });
+    if(this.method){
+      document.querySelectorAll(".method-card").forEach(c=>c.classList.toggle("selected", c.dataset.method===this.method));
+    }
+  },
+  handleFile(input){
+    const name = input.files && input.files[0] ? input.files[0].name : "";
+    if(!name) return;
+    STATE.uploadFileName = name;
+    const box = document.getElementById("uploadBox");
+    box.classList.add("filled");
+    document.getElementById("uploadBoxText").innerHTML = `<span class="file-name">✓ ${name}</span><br><span class="hint">Bestand geselecteerd — in deze demo wordt het niet naar een server verstuurd.</span>`;
+  },
+  complete(){
+    const company = document.getElementById("f_companyName").value.trim();
+    const email = document.getElementById("f_email").value.trim();
+    if(!company || !email){ document.getElementById("err_account").style.display="block"; return; }
+    if(!document.getElementById("f_consentPrivacy").checked || !document.getElementById("f_consentProcessing").checked){
+      document.getElementById("err_account").textContent = "Bevestig de privacyverklaring en verwerkingstoestemming om verder te gaan.";
+      document.getElementById("err_account").style.display="block"; return;
+    }
+    document.getElementById("err_account").style.display="none";
+    STATE.account = {
+      companyName: company,
+      contactPerson: document.getElementById("f_contactPerson").value.trim(),
+      email, phone: document.getElementById("f_phone").value.trim()
+    };
+    STATE.consents = {
+      privacy: true, processing: true,
+      marketing: document.getElementById("f_consentMarketing").checked,
+      benchmark: document.getElementById("f_consentBenchmark").checked
+    };
+    STATE.completed = true;
+    Engine.computeResult();
+    saveState();
+    Engine.renderResult();
+    Router.go("result");
+  }
+};
+
+/* ---------------- Calculation engine ---------------- */
+const Engine = {
+  computeResult(){
+    const spend = STATE.primary.annualSpend || 6000;
+    const n = STATE.selectedSubgroups.length;
+    let low = spend*0.04 + n*180;
+    let high = spend*0.10 + n*420;
+    const locBoost = {"1":1, "2":1.15, "3 – 5":1.3, "6+":1.5}[STATE.profile.locations] || 1;
+    low *= locBoost; high *= locBoost;
+    if(STATE.primary.contractStatus === "Onbekend" || STATE.primary.contractStatus === "Geen vast contract"){
+      high *= 1.15;
+    }
+    STATE.result = {
+      low: Math.round(low), high: Math.round(high),
+      profilePct: Engine.profileCompletion()
+    };
+  },
+  profileCompletion(){
+    let score = 0;
+    const total = 6;
+    if(STATE.profile.city) score++;
+    if(STATE.selectedSubgroups.length>0) score++;
+    if(STATE.primary.supplier) score++;
+    if(STATE.method) score++;
+    if(STATE.account.companyName) score++;
+    if(STATE.selectedSubgroups.length>=3) score++;
+    return Math.round((score/total)*100);
+  },
+  statusLabel(){
+    if(STATE.method==="upload") return "Document ontvangen";
+    if(STATE.method==="request") return "Gegevensopvraag klaar";
+    return "Later aanleveren";
+  },
+  recommendedNext(){
+    return STATE.selectedSubgroups.filter(id=>id!==STATE.primary.subgroupId).slice(0,3).map(subgroupName);
+  },
+  renderResult(){
+    if(!STATE.result) this.computeResult();
+    document.getElementById("resultRange").textContent = `${euro(STATE.result.low)} – ${euro(STATE.result.high)}`;
+    document.getElementById("resultPrimary").textContent = subgroupName(STATE.primary.subgroupId);
+    document.getElementById("resultStatus").textContent = this.statusLabel();
+    document.getElementById("resultCount").textContent = STATE.selectedSubgroups.length;
+    document.getElementById("resultProfilePct").textContent = STATE.result.profilePct + "%";
+    const recs = this.recommendedNext();
+    document.getElementById("resultRecommendations").textContent = recs.length
+      ? "Op basis van je bedrijfsprofiel zien we mogelijke kansen bij " + recs.join(", ") + "."
+      : "Open in je dashboard extra subgroepen om meer aanbevelingen te ontvangen.";
+    document.getElementById("resultSummary").innerHTML = `Je eerste analyse voor <strong>${subgroupName(STATE.primary.subgroupId)}</strong> staat klaar. Horeca United gebruikt deze uitkomst om de meest kansrijke volgende subgroepen te adviseren.`;
+  }
+};
+
+/* ---------------- Subgroup status simulation (deterministic per company) ---------------- */
+const STATUS_LIST = ["Niet van toepassing","Nog niet ingevuld","Basisgegevens ingevuld","Documenten ontbreken","Klaar voor analyse","Analyse in behandeling","Besparingskans gevonden","Collectief voorstel beschikbaar","Voorstel geaccepteerd","Overstap in uitvoering","Besparing gerealiseerd","Huidige afspraak is marktconform"];
+
+function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i)) >>> 0; } return h; }
+
+function buildSubgroupRows(){
+  return STATE.selectedSubgroups.map((id,i)=>{
+    const isPrimary = id === STATE.primary.subgroupId;
+    let status, badge;
+    if(isPrimary){
+      status = Engine.statusLabel(); badge="b-green";
+    } else {
+      const h = hashStr(id+STATE.profile.city) % 4;
+      const opts = [
+        ["Nog niet ingevuld","b-grey"],["Basisgegevens ingevuld","b-yellow"],
+        ["Klaar voor analyse","b-yellow"],["Besparingskans gevonden","b-green"]
+      ];
+      [status, badge] = opts[h];
+    }
+    const kans = isPrimary ? "Hoog" : (hashStr(id) % 3 === 0 ? "Mogelijk" : "Onbekend");
+    const cost = isPrimary ? STATE.primary.annualSpend : Math.round(1500 + (hashStr(id)%40)*350);
+    const supplier = isPrimary ? (STATE.primary.supplier || "Onbekende leverancier") : "—";
+    const contractEnd = isPrimary ? (STATE.primary.contractEnd || "Onbekend") : "Onbekend";
+    const missing = isPrimary && STATE.method==="later" ? "Factuur of contract" : (status==="Documenten ontbreken" ? "Factuur" : "—");
+    return {id, name: subgroupName(id), status, badge, kans, cost, supplier, contractEnd, missing, isPrimary};
+  });
+}
+
+/* ---------------- Klantdashboard ---------------- */
+const Dashboard = {
+  open(){
+    if(!STATE.completed){
+      // seed a reasonable default so the dashboard is never empty
+      STATE.account.companyName = STATE.account.companyName || "Voorbeeld Horecazaak";
+      Engine.computeResult();
+      STATE.completed = true;
+      saveState();
+    }
+    this.render();
+    Router.go("dashboard");
+  },
+  render(){
+    const rows = buildSubgroupRows();
+    document.getElementById("dashCompanyName").textContent = STATE.account.companyName || "Voorbeeld Horecazaak";
+    document.getElementById("dashPotential").textContent = STATE.result ? `${euro(STATE.result.low)} – ${euro(STATE.result.high)}` : "—";
+    document.getElementById("dashAnalyzed").textContent = rows.filter(r=>r.status!=="Nog niet ingevuld").length + " / " + rows.length;
+    const pct = STATE.result ? STATE.result.profilePct : Engine.profileCompletion();
+    document.getElementById("dashProfilePct").textContent = pct + "%";
+    document.getElementById("dashProfilePct2").textContent = pct + "% voltooid";
+    document.getElementById("dashProfileBar").style.width = pct + "%";
+
+    const shortBody = rows.slice(0,5).map(r=>`
+      <tr><td><strong>${r.name}</strong></td><td><span class="badge ${r.badge}">${r.status}</span></td>
+      <td>${r.kans}</td><td><button class="btn btn-ghost btn-sm" onclick="Dashboard.showTab('subgroepen')">Bekijk</button></td></tr>`).join("");
+    document.getElementById("dashSubgroupTableShort").innerHTML = shortBody || `<tr><td colspan="4" class="empty-state">Nog geen subgroepen geselecteerd.</td></tr>`;
+
+    const fullBody = rows.map(r=>`
+      <tr><td><strong>${r.name}</strong></td><td>${r.supplier}</td><td>${euro(r.cost)}</td>
+      <td><span class="badge ${r.badge}">${r.status}</span></td><td>${r.kans}</td><td>${r.contractEnd}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="alert('In deze demo start dit de analyse-flow voor ${r.name}.')">${r.status==="Nog niet ingevuld"?"Start analyse":"Bekijk"}</button></td></tr>`).join("");
+    document.getElementById("dashSubgroupTableFull").innerHTML = fullBody || `<tr><td colspan="7" class="empty-state">Nog geen subgroepen geselecteerd.</td></tr>`;
+
+    const next = STATE.selectedSubgroups.filter(id=>id!==STATE.primary.subgroupId)[0];
+    document.getElementById("dashNextAction").textContent = next
+      ? `Upload je ${subgroupName(next).toLowerCase()}-document om je volgende analyse te starten. Je profiel is voor ${pct}% voltooid.`
+      : `Open extra subgroepen om je volledige benchmark te ontgrendelen. Je profiel is voor ${pct}% voltooid.`;
+
+    // documents
+    const docs = [];
+    if(STATE.uploadFileName) docs.push({name: STATE.uploadFileName, subgroup: subgroupName(STATE.primary.subgroupId), status:"Ontvangen"});
+    document.getElementById("dashDocuments").innerHTML = docs.length
+      ? `<table class="table"><thead><tr><th>Bestand</th><th>Subgroep</th><th>Status</th></tr></thead><tbody>${docs.map(d=>`<tr><td>${d.name}</td><td>${d.subgroup}</td><td><span class="badge b-green">${d.status}</span></td></tr>`).join("")}</tbody></table>`
+      : `<div class="empty-state">Nog geen documenten geüpload.</div>`;
+
+    // contracts
+    const contractRows = rows.filter(r=>r.contractEnd && r.contractEnd!=="Onbekend");
+    document.getElementById("dashContractTable").innerHTML = contractRows.length
+      ? contractRows.map(r=>`<tr><td>${r.name}</td><td>${r.supplier}</td><td>${r.contractEnd}</td><td><span class="badge b-yellow">Aandachtspunt</span></td></tr>`).join("")
+      : `<tr><td colspan="4" class="empty-state">Nog geen bekende contracteinddatums.</td></tr>`;
+
+    // savings
+    document.getElementById("dashSavingsTable").innerHTML = rows.map(r=>{
+      const est = r.isPrimary && STATE.result ? `${euro(STATE.result.low)} – ${euro(STATE.result.high)}` : (r.badge==="b-green" ? euro(r.cost*0.06)+" – "+euro(r.cost*0.12) : "Nog te bepalen");
+      return `<tr><td>${r.name}</td><td>${est}</td><td><span class="badge ${r.badge}">${r.status}</span></td></tr>`;
+    }).join("");
+
+    // authorizations
+    renderAuthTable();
+
+    // profile
+    const p = STATE.profile;
+    document.getElementById("dashProfileKv").innerHTML = `
+      <div><span>Bedrijfsnaam</span>${STATE.account.companyName||"—"}</div>
+      <div><span>Contactpersoon</span>${STATE.account.contactPerson||"—"}</div>
+      <div><span>E-mail</span>${STATE.account.email||"—"}</div>
+      <div><span>Telefoon</span>${STATE.account.phone||"—"}</div>
+      <div><span>Type horecazaak</span>${p.businessType||"—"}</div>
+      <div><span>Vestigingsplaats</span>${p.city||"—"}</div>
+      <div><span>Jaaromzet</span>${p.turnover||"—"}</div>
+      <div><span>Aantal vestigingen</span>${p.locations||"—"}</div>
+    `;
+  },
+  showTab(tab){
+    document.querySelectorAll(".dash-tab").forEach(el=>el.style.display="none");
+    document.getElementById("dashTab-"+tab).style.display="block";
+    document.querySelectorAll(".side-nav a[data-dash]").forEach(a=>a.classList.toggle("active", a.dataset.dash===tab));
+  }
+};
+
+function renderAuthTable(){
+  const rows = [];
+  if(STATE.method==="request" && STATE.authorization.consent){
+    rows.push({
+      subgroup: subgroupName(STATE.primary.subgroupId),
+      supplier: STATE.primary.supplier || "Onbekende leverancier",
+      given: "Vandaag", validUntil: STATE.authorization.validity,
+      status: "Gegevens opgevraagd", scope: "Facturen en contractgegevens voor deze subgroep en leverancier"
+    });
+  }
+  // sample historical authorization for demo richness
+  rows.push({subgroup:"Afval", supplier:"Afvalinzamelaar Regio Oost", given:"12 juni 2026", validUntil:"90 dagen", status:"Verlopen", scope:"Facturen en contractgegevens"});
+  document.getElementById("dashAuthTable").innerHTML = rows.map(r=>`
+    <tr><td>${r.subgroup}</td><td>${r.supplier}</td><td>${r.given}</td><td>${r.validUntil}</td>
+    <td><span class="badge ${r.status==="Verlopen"?"b-grey":"b-green"}">${r.status}</span></td>
+    <td style="font-size:12.5px;color:var(--muted)">${r.scope}</td>
+    <td><button class="btn btn-ghost btn-sm" onclick="alert('Machtiging ingetrokken (demo).')">Intrekken</button></td></tr>`).join("");
+}
+
+/* ---------------- Lead scoring ---------------- */
+function leadScore(company){
+  let score = 0;
+  score += Math.min(30, (company.annualCosts/2000));
+  score += {"1":0,"2":5,"3 – 5":10,"6+":15}[company.locations] || 0;
+  score += Math.min(15, company.subgroupCount*2);
+  score += company.hasDocument ? 12 : 0;
+  score += company.contractSoon ? 10 : 0;
+  score += company.willingness==="ja" ? 12 : (company.willingness==="misschien" ? 6 : 0);
+  score += company.multiAnalysis ? 6 : 0;
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+function leadLabel(score){
+  if(score>=85) return ["Conversieklaar","b-green"];
+  if(score>=70) return ["Hoge prioriteit","b-green"];
+  if(score>=50) return ["Kansrijk","b-yellow"];
+  if(score>=30) return ["Nieuw","b-grey"];
+  return ["Koud","b-grey"];
+}
+
+/* ---------------- Admin demo dataset ---------------- */
+const DEMO_COMPANIES = [
+  {name:"Restaurant Het Stadshuis", type:"Restaurant", city:"Arnhem", locations:"1", firstSubgroup:"Energie", subgroupCount:4, annualCosts:64000, potentialLow:3000, potentialHigh:8000, willingness:"ja", hasDocument:true, contractSoon:true, multiAnalysis:true, phase:"Actieve pilotklant"},
+  {name:"Brasserie De Kade", type:"Café", city:"Nijmegen", locations:"1", firstSubgroup:"Betaalverkeer", subgroupCount:1, annualCosts:9500, potentialLow:1200, potentialHigh:3000, willingness:"misschien", hasDocument:false, contractSoon:false, multiAnalysis:false, phase:"Nieuwe lead"},
+  {name:"Hotel Stadspoort", type:"Hotel", city:"Utrecht", locations:"2", firstSubgroup:"Afval", subgroupCount:6, annualCosts:142000, potentialLow:8000, potentialHigh:18000, willingness:"ja", hasDocument:true, contractSoon:true, multiAnalysis:true, phase:"Multi-subgroepklant"},
+  {name:"Café De Hoek", type:"Café", city:"Apeldoorn", locations:"1", firstSubgroup:"Bier", subgroupCount:2, annualCosts:21000, potentialLow:1500, potentialHigh:4200, willingness:"nee", hasDocument:false, contractSoon:false, multiAnalysis:false, phase:"Quick Scan gestart"},
+  {name:"Lunchroom Aan Tafel", type:"Lunchroom", city:"Zwolle", locations:"1", firstSubgroup:"Foodgroothandel", subgroupCount:3, annualCosts:38000, potentialLow:2200, potentialHigh:5600, willingness:"misschien", hasDocument:true, contractSoon:false, multiAnalysis:false, phase:"Kansrijke lead"},
+  {name:"Bistro Noord", type:"Restaurant", city:"Amsterdam", locations:"1", firstSubgroup:"Verzekeringen", subgroupCount:5, annualCosts:97000, potentialLow:5000, potentialHigh:12500, willingness:"ja", hasDocument:true, contractSoon:true, multiAnalysis:true, phase:"Conversieklaar"},
+  {name:"Grand Café Marktzicht", type:"Café", city:"Breda", locations:"1", firstSubgroup:"Internet en telefonie", subgroupCount:2, annualCosts:26000, potentialLow:1400, potentialHigh:3400, willingness:"misschien", hasDocument:false, contractSoon:false, multiAnalysis:false, phase:"Nieuwe lead"},
+  {name:"Eetcafé De Brug", type:"Café", city:"Deventer", locations:"1", firstSubgroup:"Schoonmaak", subgroupCount:1, annualCosts:14000, potentialLow:900, potentialHigh:2600, willingness:"nee", hasDocument:false, contractSoon:false, multiAnalysis:false, phase:"Quick Scan gestart"},
+  {name:"Hotel Van Der Linde", type:"Hotel", city:"Groningen", locations:"3 – 5", firstSubgroup:"Energie", subgroupCount:8, annualCosts:210000, potentialLow:12000, potentialHigh:26000, willingness:"ja", hasDocument:true, contractSoon:true, multiAnalysis:true, phase:"Actieve Horeca United-klant"},
+  {name:"Cafetaria 't Pleintje", type:"Cafetaria / fastservice", city:"Enschede", locations:"1", firstSubgroup:"Diepvries", subgroupCount:1, annualCosts:31000, potentialLow:1800, potentialHigh:4400, willingness:"misschien", hasDocument:false, contractSoon:false, multiAnalysis:false, phase:"Nieuwe lead"},
+];
+
+const AdminApp = {
+  open(){ this.buildLeads(); this.renderKpis(); this.renderLeads(); Router.go("admin"); },
+  leads: [],
+  buildLeads(){
+    // merge demo companies with the user's own quick-scan entry, so it's visible in admin
+    const rows = DEMO_COMPANIES.map(c=>({...c}));
+    if(STATE.completed && STATE.account.companyName){
+      rows.unshift({
+        name: STATE.account.companyName, type: STATE.profile.businessType||"Overig", city: STATE.profile.city||"Onbekend",
+        locations: STATE.profile.locations||"1", firstSubgroup: subgroupName(STATE.primary.subgroupId),
+        subgroupCount: STATE.selectedSubgroups.length, annualCosts: STATE.primary.annualSpend||6000,
+        potentialLow: STATE.result?STATE.result.low:1500, potentialHigh: STATE.result?STATE.result.high:4000,
+        willingness: STATE.primary.willingness||"misschien", hasDocument: STATE.method==="upload",
+        contractSoon: !!STATE.primary.contractEnd, multiAnalysis: STATE.selectedSubgroups.length>1,
+        phase: "Actieve pilotklant", self:true
+      });
+    }
+    this.leads = rows.map(r=>({...r, score: leadScore(r)}));
+  },
+  renderKpis(){
+    const totalCosts = this.leads.reduce((a,c)=>a+c.annualCosts,0);
+    const avgProfile = Math.round(this.leads.reduce((a,c)=>a+Math.min(100, 30+c.subgroupCount*8),0)/this.leads.length);
+    document.getElementById("admKpiTotalCosts").textContent = euro(totalCosts);
+    document.getElementById("admKpiContracts").textContent = this.leads.filter(c=>c.contractSoon).length;
+    document.getElementById("admKpiAvgProfile").textContent = avgProfile + "%";
+    document.getElementById("admKpiActive").textContent = this.leads.filter(c=>c.phase.includes("Actieve")).length;
+  },
+  renderLeads(){
+    const q = (document.getElementById("admSearch").value||"").toLowerCase();
+    const phaseFilter = document.getElementById("admFilterPhase").value;
+    const sort = document.getElementById("admSort").value;
+    let rows = this.leads.filter(c=>{
+      const matchQ = !q || c.name.toLowerCase().includes(q) || c.city.toLowerCase().includes(q);
+      const matchPhase = !phaseFilter || c.phase===phaseFilter;
+      return matchQ && matchPhase;
+    });
+    if(sort==="score_desc") rows.sort((a,b)=>b.score-a.score);
+    if(sort==="potential_desc") rows.sort((a,b)=>b.potentialHigh-a.potentialHigh);
+    if(sort==="name_asc") rows.sort((a,b)=>a.name.localeCompare(b.name));
+
+    const willMap = {ja:"Ja", misschien:"Misschien", nee:"Nee"};
+    const phaseColor = { "Quick Scan gestart":"b-grey","Nieuwe lead":"b-grey","Actieve pilotklant":"b-green","Kansrijke lead":"b-yellow","Multi-subgroepklant":"b-green","Conversieklaar":"b-green","Actieve Horeca United-klant":"b-green" };
+    const tbody = document.getElementById("admLeadTable");
+    tbody.innerHTML = rows.map((c,i)=>{
+      const [label] = leadLabel(c.score);
+      const nextAction = c.hasDocument ? "Analyse controleren" : (c.contractSoon ? "Contractmoment opvolgen" : "Uploadherinnering sturen");
+      return `<tr class="clickable" onclick="AdminApp.openDetail('${encodeURIComponent(c.name)}')">
+        <td><strong>${c.name}</strong>${c.self?' <span class="tag" style="margin-left:4px">jouw invoer</span>':''}</td>
+        <td>${c.type}<br><span class="hint">${c.city}</span></td>
+        <td>${c.locations}</td>
+        <td>${c.firstSubgroup}</td>
+        <td>${c.subgroupCount}</td>
+        <td>${euro(c.annualCosts)}</td>
+        <td>${euro(c.potentialLow)} – ${euro(c.potentialHigh)}</td>
+        <td>${willMap[c.willingness]}</td>
+        <td><span class="leadscore"><span class="leadscore-bar"><div style="width:${c.score}%"></div></span>${c.score} · ${label}</span></td>
+        <td><span class="badge ${phaseColor[c.phase]||'b-grey'}">${c.phase}</span></td>
+        <td>${nextAction}</td>
+      </tr>`;
+    }).join("");
+    document.getElementById("admEmpty").style.display = rows.length ? "none":"block";
+  },
+  openDetail(nameEncoded){
+    const name = decodeURIComponent(nameEncoded);
+    const c = this.leads.find(x=>x.name===name);
+    if(!c) return;
+    const [label] = leadLabel(c.score);
+    document.getElementById("detailModalContent").innerHTML = `
+      <span class="pill">${c.phase}</span>
+      <h2 style="margin-top:12px">${c.name}</h2>
+      <p>${c.type} · ${c.city} · ${c.locations} vestiging(en)</p>
+      <div class="detail-grid">
+        <div>
+          <h3 style="font-size:15px">Bedrijfsprofiel</h3>
+          <div class="kv">
+            <div><span>Jaarlijkse kosten</span>${euro(c.annualCosts)}</div>
+            <div><span>Besparingspotentieel</span>${euro(c.potentialLow)} – ${euro(c.potentialHigh)}</div>
+            <div><span>Eerste subgroep</span>${c.firstSubgroup}</div>
+            <div><span>Aantal subgroepen</span>${c.subgroupCount}</div>
+            <div><span>Overstapbereidheid</span>${({ja:"Ja",misschien:"Misschien, bij voordeel",nee:"Nee, alleen benchmarken"})[c.willingness]}</div>
+            <div><span>Document geüpload</span>${c.hasDocument?"Ja":"Nee"}</div>
+          </div>
+          <h3 style="font-size:15px;margin-top:18px">Interne notities</h3>
+          <p style="font-size:13px">${c.self ? "Eigen invoer uit deze demo-sessie." : "Voorbeeldnotitie: contactmoment gepland, wacht op documentatie van de klant."}</p>
+          <h3 style="font-size:15px">Taken</h3>
+          <div class="tag-list"><span class="tag">Document opvolgen</span><span class="tag">Contractdatum verifiëren</span>${c.multiAnalysis?'<span class="tag">Collectief voorstel voorbereiden</span>':''}</div>
+        </div>
+        <div>
+          <div class="panel stat" style="margin-bottom:10px"><span>Leadscore</span><strong>${c.score} · ${label}</strong></div>
+          <div class="panel stat" style="margin-bottom:10px"><span>Geschatte commissie</span><strong>${euro((c.potentialHigh)*0.15)}</strong></div>
+          <div class="panel stat"><span>Voorgestelde vervolgstap</span><strong style="font-size:14px">${c.hasDocument?"Analyse afronden":"Documenten opvragen"}</strong></div>
+        </div>
+      </div>
+    `;
+    document.getElementById("detailModal").classList.add("active");
+  },
+  closeDetail(){ document.getElementById("detailModal").classList.remove("active"); }
+};
+document.getElementById("detailModal").addEventListener("click", e=>{ if(e.target.id==="detailModal") AdminApp.closeDetail(); });
+
+/* ---------------- Demo data controls ---------------- */
+const DemoData = {
+  reset(){
+    if(!confirm("Weet je zeker dat je alle demo-invoer wilt resetten?")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    STATE = defaultState();
+    Router.go("landing");
+  }
+};
+
+/* ---------------- Init ---------------- */
+renderSubgroupOverview();
+if(STATE.completed){ Engine.computeResult(); }
+</script>
+</body>
+</html>
