@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --ink:#1f2a24; --muted:#6b7568; --bg:#f6f5f1; --card:#ffffff; --line:#e3e0d5;
@@ -647,9 +648,36 @@ table.table tr.clickable:hover{background:#faf9f4}
         <!-- TAB: documenten -->
         <div id="dashTab-documenten" class="dash-tab" style="display:none">
           <div class="panel card">
-            <h3>Documenten</h3>
+            <h3>Document uploaden</h3>
+            <div class="grid2" style="margin-bottom:14px">
+              <div class="field">
+                <label for="docUploadName">Volledige naam <span class="hint">(optioneel)</span></label>
+                <input type="text" id="docUploadName" placeholder="Jan de Vries">
+              </div>
+              <div class="field">
+                <label for="docUploadEmail">E-mailadres</label>
+                <input type="email" id="docUploadEmail" placeholder="jij@voorbeeld.nl">
+              </div>
+            </div>
+            <div class="upload-box" id="docUploadBox" onclick="document.getElementById('docFileInput').click()">
+              <input type="file" id="docFileInput" style="display:none" accept=".xlsx,.pdf,.xls" multiple onchange="Dashboard.stageFiles(this)">
+              <div id="docUploadBoxText">Klik om bestand(en) te selecteren (factuur, contract, jaarafrekening of offerte)</div>
+            </div>
+            <div id="docStagingArea" style="display:none;margin-top:14px">
+              <table class="table" id="docStagingTable">
+                <thead><tr><th>Bestand</th><th>Subgroep <span style="font-weight:400;text-transform:none;font-family:var(--font-body)">(optioneel)</span></th></tr></thead>
+                <tbody id="docStagingBody"></tbody>
+              </table>
+              <div class="actions" style="margin-top:12px">
+                <button class="btn btn-primary" onclick="Dashboard.submitStagedFiles()">Uploaden</button>
+                <button class="btn btn-ghost" onclick="Dashboard.clearStaging()">Annuleren</button>
+              </div>
+            </div>
+            <div id="docUploadStatus" style="margin-top:10px;font-size:13px"></div>
+          </div>
+          <div class="panel card">
+            <h3>Geüploade documenten</h3>
             <div id="dashDocuments"></div>
-            <p style="margin-top:14px" class="hint">Upload aanvullende documenten vanuit een subgroep om je profiel te versterken.</p>
           </div>
         </div>
 
@@ -768,6 +796,31 @@ table.table tr.clickable:hover{background:#faf9f4}
 </div>
 
 <script>
+/* =========================================================
+   Supabase
+   ========================================================= */
+const SUPABASE_URL = 'https://yyvzqnjumnpotawnrvfw.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_QDvjBPDGIgrQNcSzEw2FZg_Yj6hfIgY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function uploadToSupabase(file, name, email, subgroup) {
+  const safeEmail = email.replace(/[^a-z0-9@._-]/gi, '_');
+  const filePath = `${safeEmail}/${Date.now()}_${file.name}`;
+
+  const { error: uploadError } = await sb.storage
+    .from('client-uploads')
+    .upload(filePath, file, { cacheControl: '3600', upsert: false });
+  if (uploadError) throw uploadError;
+
+  const { error: dbError } = await sb.from('uploads').insert({
+    email, name: name || null, file_name: file.name, file_path: filePath,
+    subgroup: subgroup || null
+  });
+  if (dbError) throw dbError;
+
+  return filePath;
+}
+
 /* =========================================================
    Horeca United demo — data, state, rendering
    ========================================================= */
@@ -954,13 +1007,22 @@ const QuickScan = {
       document.querySelectorAll(".method-card").forEach(c=>c.classList.toggle("selected", c.dataset.method===this.method));
     }
   },
-  handleFile(input){
-    const name = input.files && input.files[0] ? input.files[0].name : "";
-    if(!name) return;
-    STATE.uploadFileName = name;
+  async handleFile(input){
+    const file = input.files && input.files[0] ? input.files[0] : null;
+    if(!file) return;
+    STATE.uploadFileName = file.name;
     const box = document.getElementById("uploadBox");
     box.classList.add("filled");
-    document.getElementById("uploadBoxText").innerHTML = `<span class="file-name">✓ ${name}</span><br><span class="hint">Bestand geselecteerd — in deze demo wordt het niet naar een server verstuurd.</span>`;
+    document.getElementById("uploadBoxText").innerHTML = `<span class="file-name">✓ ${file.name}</span><br><span class="hint">Bezig met uploaden…</span>`;
+
+    const email = (document.getElementById("f_email").value.trim() || "onbekend@demo.nl").toLowerCase();
+    const name = document.getElementById("f_companyName").value.trim() || "Onbekend bedrijf";
+    try {
+      await uploadToSupabase(file, name, email, STATE.primary.subgroupId || null);
+      document.getElementById("uploadBoxText").innerHTML = `<span class="file-name">✓ ${file.name}</span><br><span class="hint" style="color:var(--positive-ink)">Bestand succesvol geüpload naar Supabase.</span>`;
+    } catch(err) {
+      document.getElementById("uploadBoxText").innerHTML = `<span class="file-name">✓ ${file.name}</span><br><span class="hint" style="color:var(--danger-ink)">Upload mislukt: ${err.message}</span>`;
+    }
   },
   complete(){
     const company = document.getElementById("f_companyName").value.trim();
@@ -1146,6 +1208,69 @@ const Dashboard = {
     document.querySelectorAll(".dash-tab").forEach(el=>el.style.display="none");
     document.getElementById("dashTab-"+tab).style.display="block";
     document.querySelectorAll(".side-nav a[data-dash]").forEach(a=>a.classList.toggle("active", a.dataset.dash===tab));
+  },
+  _stagedFiles: [],
+  _subgroupOptions(){
+    return `<option value="">— Geen / onbekend —</option>` +
+      SUBGROUPS.map(s=>`<option value="${s.id}">${s.name}</option>`).join("");
+  },
+  stageFiles(input){
+    const files = Array.from(input.files || []);
+    if(!files.length) return;
+    this._stagedFiles = files;
+    const defaultSg = STATE.primary.subgroupId || "";
+    const opts = this._subgroupOptions();
+    document.getElementById("docStagingBody").innerHTML = files.map((f, i) => `
+      <tr>
+        <td style="font-size:13px">${f.name}</td>
+        <td><select id="docStagingSg_${i}" style="width:100%;padding:8px 10px;border:1px solid #cfd3c6;border-radius:var(--r-sm);font-size:13px">${opts}</select></td>
+      </tr>`).join("");
+    files.forEach((_, i) => {
+      document.getElementById(`docStagingSg_${i}`).value = defaultSg;
+    });
+    document.getElementById("docStagingArea").style.display = "block";
+    document.getElementById("docUploadBox").classList.add("filled");
+    document.getElementById("docUploadBoxText").textContent = `${files.length} bestand(en) geselecteerd`;
+    document.getElementById("docUploadStatus").textContent = "";
+  },
+  clearStaging(){
+    this._stagedFiles = [];
+    document.getElementById("docStagingArea").style.display = "none";
+    document.getElementById("docUploadBox").classList.remove("filled");
+    document.getElementById("docUploadBoxText").textContent = "Klik om bestand(en) te selecteren (factuur, contract, jaarafrekening of offerte)";
+    document.getElementById("docFileInput").value = "";
+    document.getElementById("docUploadStatus").textContent = "";
+  },
+  async submitStagedFiles(){
+    const name = document.getElementById("docUploadName").value.trim();
+    const email = document.getElementById("docUploadEmail").value.trim().toLowerCase();
+    const statusEl = document.getElementById("docUploadStatus");
+
+    if(!email){
+      statusEl.style.color = "var(--danger-ink)";
+      statusEl.textContent = "Vul je e-mailadres in voordat je uploadt.";
+      return;
+    }
+
+    statusEl.style.color = "var(--ink)";
+    statusEl.textContent = "Bezig met uploaden…";
+
+    try {
+      for(let i = 0; i < this._stagedFiles.length; i++){
+        const file = this._stagedFiles[i];
+        const subgroup = document.getElementById(`docStagingSg_${i}`).value || null;
+        await uploadToSupabase(file, name || null, email, subgroup);
+        if(!STATE.uploadFileName) STATE.uploadFileName = file.name;
+      }
+      statusEl.style.color = "var(--positive-ink)";
+      statusEl.textContent = `${this._stagedFiles.length} bestand(en) succesvol geüpload.`;
+      this.clearStaging();
+      saveState();
+      this.render();
+    } catch(err) {
+      statusEl.style.color = "var(--danger-ink)";
+      statusEl.textContent = "Upload mislukt: " + err.message;
+    }
   }
 };
 
