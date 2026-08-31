@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
@@ -153,8 +154,10 @@ input:focus,select:focus{border-color:var(--brand2)}
 .method-card strong{display:block;font-size:14px;margin-bottom:4px}
 .method-card p{font-size:12.5px;margin:0}
 
-.upload-box{border:1.5px dashed #b9c1ac;border-radius:12px;padding:26px;text-align:center;background:#fbfaf6}
+.upload-box{border:1.5px dashed #b9c1ac;border-radius:12px;padding:26px;text-align:center;background:#fbfaf6;cursor:pointer;transition:border-color .15s,background .15s}
 .upload-box.filled{border-style:solid;border-color:var(--brand2);background:var(--positive-bg)}
+.upload-box.dragover{border-color:var(--brand2);background:var(--positive-bg);border-style:solid}
+.upload-file-list{margin-top:10px;text-align:left;font-size:13px;color:var(--muted);line-height:1.7}
 .file-name{font-family:var(--font-mono);font-size:13px;color:var(--brand)}
 
 .note{padding:13px 15px;background:var(--warn-bg);border:1px solid #e9cf8c;border-radius:11px;color:var(--warn-ink);font-size:13px}
@@ -370,7 +373,7 @@ table.table tr.clickable:hover{background:#faf9f4}
 
   <div class="shell footer">
     <div>Horeca United — Horeca United Operating System. Conceptdemo, geen productieomgeving.</div>
-    <div>Indicatieve berekeningen · geen financieel advies · <a onclick="AdminApp.open()" style="text-decoration:underline;cursor:pointer">Horeca United beheer</a></div>
+    <div>Indicatieve berekeningen · geen financieel advies · <a onclick="Router.go('privacy')" style="text-decoration:underline;cursor:pointer">Privacyverklaring</a> · <a onclick="AdminApp.open()" style="text-decoration:underline;cursor:pointer">Horeca United beheer</a></div>
   </div>
 </section>
 
@@ -487,10 +490,24 @@ table.table tr.clickable:hover{background:#faf9f4}
         </div>
 
         <div id="methodUpload" class="method-panel" style="display:none">
-          <div class="upload-box" id="uploadBox" onclick="document.getElementById('fileInput').click()">
-            <input type="file" id="fileInput" style="display:none" onchange="QuickScan.handleFile(this)">
-            <div id="uploadBoxText">Klik om een bestand te selecteren (factuur, contract, jaarafrekening of offerte)</div>
+          <div class="grid2" style="margin-bottom:12px">
+            <div class="field"><label for="u_bier">Volume bier (liter of hl)</label><input type="number" step="any" id="u_bier" placeholder="bijv. 1200"></div>
+            <div class="field"><label for="u_elektra">Volume elektra (kWh)</label><input type="number" step="any" id="u_elektra" placeholder="bijv. 4500"></div>
+            <div class="field"><label for="u_gas">Volume gas (m³)</label><input type="number" step="any" id="u_gas" placeholder="bijv. 800"></div>
+            <div class="field"><label for="u_frisdrank">Volume frisdrank</label><input type="number" step="any" id="u_frisdrank" placeholder="bijv. 300"></div>
+            <div class="field"><label for="u_vuilnis_kosten">Kosten vuilnis (€)</label><input type="number" step="any" id="u_vuilnis_kosten" placeholder="bijv. 185.50"></div>
+            <div class="field"><label for="u_vuilnis_container">Type / maat container</label><input type="text" id="u_vuilnis_container" placeholder="bijv. 1100L restafval"></div>
           </div>
+          <div class="field" style="margin-bottom:14px"><label for="u_verzekering">Verzekering – wat is gedekt?</label><textarea id="u_verzekering" rows="2" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px;resize:vertical" placeholder="Bijv. inventaris, bedrijfsschade, aansprakelijkheid…"></textarea></div>
+          <div class="upload-box" id="uploadBox"
+               onclick="document.getElementById('fileInput').click()"
+               ondragover="event.preventDefault();this.classList.add('dragover')"
+               ondragleave="this.classList.remove('dragover')"
+               ondrop="this.classList.remove('dragover');QuickScan.handleFiles(event.dataTransfer.files)">
+            <input type="file" id="fileInput" style="display:none" multiple accept=".xlsx,.xls,.pdf,.csv,.doc,.docx" onchange="QuickScan.handleFiles(this.files)">
+            <div id="uploadBoxText">Sleep bestanden hierheen of klik om te selecteren<br><span class="hint">Factuur, contract, jaarafrekening of offerte (Excel, PDF, Word)</span></div>
+          </div>
+          <div class="upload-file-list" id="uploadFileList"></div>
         </div>
 
         <div id="methodRequest" class="method-panel" style="display:none">
@@ -530,7 +547,7 @@ table.table tr.clickable:hover{background:#faf9f4}
         <div style="margin-top:8px">
           <div class="consent-row">
             <input type="checkbox" id="f_consentPrivacy">
-            <label for="f_consentPrivacy">Ik heb kennisgenomen van de privacyverklaring. <span class="req">verplicht</span></label>
+            <label for="f_consentPrivacy">Ik heb kennisgenomen van de <a onclick="Router.go('privacy')" style="text-decoration:underline;cursor:pointer">privacyverklaring</a>. <span class="req">verplicht</span></label>
           </div>
           <div class="consent-row">
             <input type="checkbox" id="f_consentProcessing">
@@ -787,6 +804,84 @@ table.table tr.clickable:hover{background:#faf9f4}
   </div>
 </section>
 
+<!-- ============ PRIVACY ============ -->
+<section id="screen-privacy" class="screen">
+  <div class="shell" style="max-width:740px;padding-top:48px;padding-bottom:64px">
+    <a onclick="history.back()" style="text-decoration:underline;cursor:pointer;color:var(--muted);font-size:14px">← Terug</a>
+    <h1 style="margin-top:20px;font-family:'Fraunces',serif">Privacyverklaring</h1>
+    <p style="color:var(--muted);font-size:14px">Upload- en analysesysteem Horeca United · Laatst bijgewerkt: [datum invullen]</p>
+
+    <h2 style="margin-top:32px">1. Wie is verantwoordelijk?</h2>
+    <p>Horeca United<br>
+    [Adres invullen]<br>
+    KvK-nummer: [invullen]<br>
+    E-mail: <a href="mailto:[privacy e-mailadres invullen]">[privacy e-mailadres invullen]</a></p>
+    <p>Horeca United is verantwoordelijk voor de verwerking van de persoonsgegevens die via dit systeem worden verzameld.</p>
+
+    <h2 style="margin-top:28px">2. Welke gegevens verzamelen wij?</h2>
+    <p>Wij verwerken de volgende gegevens wanneer u bestanden uploadt:</p>
+    <ul>
+      <li>Naam</li>
+      <li>E-mailadres</li>
+      <li>Geüploade bestanden (Excel en/of PDF)</li>
+      <li>Metadata van de bestanden (bestandsnaam, uploadtijdstip, bestandsgrootte)</li>
+      <li>Eventueel door u ingevulde cijfers (zoals volume bier, elektra in kWh, gas, frisdrank, vuilniskosten en verzekeringsinformatie)</li>
+    </ul>
+
+    <h2 style="margin-top:28px">3. Waarvoor gebruiken wij deze gegevens?</h2>
+    <p>Wij gebruiken de gegevens uitsluitend voor:</p>
+    <ul>
+      <li>Het centraal opslaan en ordenen van de aangeleverde bestanden</li>
+      <li>Analyse van volumes en kosten (bier, elektra, gas, frisdrank, vuilnis en verzekering)</li>
+      <li>Het maken van overzichten en rapportages ten behoeve van administratie, inkoop of bedrijfsvoering</li>
+      <li>Communicatie met u over de upload of de analyses</li>
+    </ul>
+
+    <h2 style="margin-top:28px">4. Rechtsgrondslag</h2>
+    <p>De verwerking gebeurt op basis van:</p>
+    <ul>
+      <li><strong>Overeenkomst</strong> — wanneer u gebruikmaakt van onze dienst, en/of</li>
+      <li><strong>Toestemming</strong> — door het uploaden van bestanden en het invullen van het formulier</li>
+    </ul>
+
+    <h2 style="margin-top:28px">5. Hoe lang bewaren wij de gegevens?</h2>
+    <p>Bestanden en bijbehorende gegevens bewaren wij zolang dat nodig is voor het doel, met een maximale bewaartermijn van <strong>7 jaar</strong> (aansluitend bij fiscale bewaarplichten), tenzij een langere termijn wettelijk verplicht is. U kunt verzoeken om eerdere verwijdering (zie artikel 8).</p>
+
+    <h2 style="margin-top:28px">6. Delen wij gegevens met derden?</h2>
+    <p>Wij delen gegevens alleen met partijen die noodzakelijk zijn voor de technische werking van het systeem, zoals onze hosting- en opslagprovider (Supabase). Met deze partijen sluiten wij een verwerkersovereenkomst. Wij verkopen of verhuren uw gegevens niet aan derden.</p>
+
+    <h2 style="margin-top:28px">7. Beveiliging</h2>
+    <p>Wij nemen passende technische en organisatorische maatregelen om uw gegevens te beschermen tegen verlies, misbruik en onbevoegde toegang (onder andere versleutelde verbindingen en toegangsbeperking).</p>
+
+    <h2 style="margin-top:28px">8. Uw rechten</h2>
+    <p>U heeft het recht om:</p>
+    <ul>
+      <li>Inzage te vragen in uw gegevens</li>
+      <li>Correctie of verwijdering te vragen</li>
+      <li>De verwerking te beperken</li>
+      <li>Bezwaar te maken tegen de verwerking</li>
+      <li>Uw toestemming in te trekken</li>
+    </ul>
+    <p>Stuur hiervoor een e-mail naar <a href="mailto:[privacy e-mailadres invullen]">[privacy e-mailadres invullen]</a>. Wij reageren binnen één maand.</p>
+    <p>U heeft ook het recht een klacht in te dienen bij de <a href="https://www.autoriteitpersoonsgegevens.nl" target="_blank" rel="noopener">Autoriteit Persoonsgegevens</a>.</p>
+
+    <h2 style="margin-top:28px">9. Contact</h2>
+    <p>Voor vragen over deze privacyverklaring of over de verwerking van uw gegevens:</p>
+    <p>Horeca United<br>
+    E-mail: <a href="mailto:[privacy e-mailadres invullen]">[privacy e-mailadres invullen]</a><br>
+    Telefoon: [telefoonnummer invullen]</p>
+
+    <div style="margin-top:40px;padding:20px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r);font-size:14px;color:var(--muted)">
+      <strong style="color:var(--ink)">Toestemmingstekst voor het formulier</strong><br>
+      Door bestanden te uploaden en dit formulier te versturen, gaat u akkoord met de verwerking van uw naam, e-mailadres en de geüploade bestanden door Horeca United zoals beschreven in deze privacyverklaring.
+    </div>
+
+    <div style="margin-top:32px">
+      <button class="btn btn-ghost" onclick="Router.go('landing')">← Terug naar home</button>
+    </div>
+  </div>
+</section>
+
 <!-- ============ MODAL: business detail ============ -->
 <div class="modal-overlay" id="detailModal">
   <div class="modal">
@@ -802,6 +897,14 @@ table.table tr.clickable:hover{background:#faf9f4}
 const SUPABASE_URL = 'https://yyvzqnjumnpotawnrvfw.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_QDvjBPDGIgrQNcSzEw2FZg_Yj6hfIgY';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function parseNum(id) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  const val = el.value.trim().replace(',', '.');
+  const n = parseFloat(val);
+  return isNaN(n) ? null : n;
+}
 
 async function uploadToSupabase(file, name, email, subgroup) {
   const safeEmail = email.replace(/[^a-z0-9@._-]/gi, '_');
@@ -819,6 +922,119 @@ async function uploadToSupabase(file, name, email, subgroup) {
   if (dbError) throw dbError;
 
   return filePath;
+}
+
+// ========== Excel parsing met SheetJS ==========
+async function parseExcel(file) {
+  const data = await file.arrayBuffer();
+  const workbook = XLSX.read(data, { type: 'array' });
+
+  let allText = '';
+  const allCells = [];
+
+  workbook.SheetNames.forEach(sheetName => {
+    const sheet = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    rows.forEach(row => {
+      row.forEach(cell => {
+        if (cell !== null && cell !== undefined && cell !== '') {
+          allText += ' ' + String(cell).toLowerCase();
+          allCells.push(String(cell));
+        }
+      });
+    });
+  });
+
+  function extractNumber(str) {
+    if (!str) return null;
+    const cleaned = String(str).replace(/[^0-9.,]/g, '').replace(',', '.');
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? null : num;
+  }
+
+  function findValue(keywords, unitHints = []) {
+    for (let i = 0; i < allCells.length; i++) {
+      const cellLower = allCells[i].toLowerCase();
+      if (keywords.some(k => cellLower.includes(k))) {
+        // Alleen vooruit zoeken (niet terug) om verkeerde naburige waarden te vermijden
+        for (let j = i + 1; j <= Math.min(allCells.length - 1, i + 3); j++) {
+          const num = extractNumber(allCells[j]);
+          if (num !== null) return num;
+        }
+      }
+    }
+    for (const hint of unitHints) {
+      const regex = new RegExp(`([\\d.,]+)\\s*${hint}`, 'i');
+      const match = allText.match(regex);
+      if (match) return extractNumber(match[1]);
+    }
+    return null;
+  }
+
+  const found = {
+    volume_bier:        findValue(['bier', 'pils', 'hectoliter', 'hl bier'], ['liter', 'l', 'hl']),
+    volume_elektra_kwh: findValue(['elektra', 'elektriciteit', 'stroom', 'kwh'], ['kwh']),
+    volume_gas_m3:      findValue(['gas', 'aardgas', 'm3 gas'], ['m3', 'm³']),
+    volume_frisdrank:   findValue(['frisdrank', 'fris', 'soft drink', 'cola'], ['liter', 'l']),
+    vuilnis_kosten:     findValue(['vuilnis', 'afval', 'restafval', 'container', 'afvalstoffen'], ['euro', '€']),
+    vuilnis_type_container: null,
+    verzekering_dekking: null
+  };
+
+  const missing = Object.entries(found)
+    .filter(([key, val]) => val === null && key !== 'verzekering_dekking' && key !== 'vuilnis_type_container')
+    .map(([key]) => key);
+
+  return { found, missing, raw_cells_sample: allCells.slice(0, 50), sheets: workbook.SheetNames };
+}
+
+function fillFormFromExtraction(extraction) {
+  if (!extraction || !extraction.found) return;
+  const f = extraction.found;
+  const map = {
+    volume_bier: 'u_bier', volume_elektra_kwh: 'u_elektra',
+    volume_gas_m3: 'u_gas', volume_frisdrank: 'u_frisdrank',
+    vuilnis_kosten: 'u_vuilnis_kosten'
+  };
+  Object.entries(map).forEach(([key, elId]) => {
+    if (f[key] !== null && f[key] !== undefined) {
+      const el = document.getElementById(elId);
+      if (el) el.value = f[key];
+    }
+  });
+}
+
+async function saveExtractedData(email, name, filePaths, excelExtraction) {
+  const today = new Date().toISOString().slice(0, 10);
+  let notes = '';
+  if (excelExtraction) {
+    if (excelExtraction.error) notes = 'Excel fout: ' + excelExtraction.error;
+    else if (excelExtraction.missing && excelExtraction.missing.length)
+      notes = 'Niet automatisch gevonden: ' + excelExtraction.missing.join(', ');
+    else notes = 'Excel volledig uitgelezen';
+  } else if (!filePaths.length) {
+    notes = 'Geen bestanden geüpload';
+  } else {
+    notes = 'Geen Excel-bestand of parsing overgeslagen';
+  }
+
+  const { data: inserted, error } = await sb.from('extracted_data').insert({
+    email,
+    name: name || null,
+    volume_bier:            parseNum('u_bier'),
+    volume_elektra_kwh:     parseNum('u_elektra'),
+    volume_gas_m3:          parseNum('u_gas'),
+    volume_frisdrank:       parseNum('u_frisdrank'),
+    vuilnis_kosten:         parseNum('u_vuilnis_kosten'),
+    vuilnis_type_container: (document.getElementById('u_vuilnis_container')?.value.trim() || null),
+    verzekering_dekking:    (document.getElementById('u_verzekering')?.value.trim() || null),
+    raw_data: { file_paths: filePaths, excel_extraction: excelExtraction || null },
+    status: excelExtraction && excelExtraction.missing?.length === 0 ? 'processed' : 'partial',
+    submitted_at: today,
+    notes
+  }).select('id').single();
+  if (error) throw error;
+  return inserted?.id || null;
 }
 
 /* =========================================================
@@ -852,6 +1068,7 @@ function defaultState(){
     primary: { subgroupId:"energie", supplier:"", annualSpend:9000, contractStatus:"Actief contract", contractEnd:"", willingness:"misschien" },
     method: "upload",
     uploadFileName: "",
+    uploadFileNames: [],
     authorization: { signName:"", signRole:"", kvk:"", validity:"60 dagen", consent:false },
     account: { companyName:"", contactPerson:"", email:"", phone:"" },
     consents: { privacy:false, processing:false, marketing:false, benchmark:false },
@@ -875,7 +1092,7 @@ function saveState(){
 }
 
 /* ---------------- Router ---------------- */
-const SCREENS = ["landing","scan","result","dashboard","admin"];
+const SCREENS = ["landing","scan","result","dashboard","admin","privacy"];
 const Router = {
   go(id){
     SCREENS.forEach(s=>document.getElementById("screen-"+s).classList.remove("active"));
@@ -1007,22 +1224,81 @@ const QuickScan = {
       document.querySelectorAll(".method-card").forEach(c=>c.classList.toggle("selected", c.dataset.method===this.method));
     }
   },
-  async handleFile(input){
-    const file = input.files && input.files[0] ? input.files[0] : null;
-    if(!file) return;
-    STATE.uploadFileName = file.name;
+  _excelExtraction: null,
+  async handleFiles(fileList){
+    const files = Array.from(fileList || []).filter(f => f && f.size > 0);
+    if(!files.length) return;
     const box = document.getElementById("uploadBox");
     box.classList.add("filled");
-    document.getElementById("uploadBoxText").innerHTML = `<span class="file-name">✓ ${file.name}</span><br><span class="hint">Bezig met uploaden…</span>`;
+    document.getElementById("uploadBoxText").innerHTML = `Sleep bestanden hierheen of klik om toe te voegen<br><span class="hint">Factuur, contract, jaarafrekening of offerte (Excel, PDF, Word)</span>`;
+    const listEl = document.getElementById("uploadFileList");
 
     const email = (document.getElementById("f_email").value.trim() || "onbekend@demo.nl").toLowerCase();
     const name = document.getElementById("f_companyName").value.trim() || "Onbekend bedrijf";
-    try {
-      await uploadToSupabase(file, name, email, STATE.primary.subgroupId || null);
-      document.getElementById("uploadBoxText").innerHTML = `<span class="file-name">✓ ${file.name}</span><br><span class="hint" style="color:var(--positive-ink)">Bestand succesvol geüpload naar Supabase.</span>`;
-    } catch(err) {
-      document.getElementById("uploadBoxText").innerHTML = `<span class="file-name">✓ ${file.name}</span><br><span class="hint" style="color:var(--danger-ink)">Upload mislukt: ${err.message}</span>`;
+    const uploadedPaths = [];
+    this._excelExtraction = null;
+
+    // Excel automatisch uitlezen vóór upload
+    const excelFile = files.find(f => /\.xlsx?$/i.test(f.name));
+    if(excelFile) {
+      const statusRow = document.createElement("div");
+      statusRow.id = "excelStatusRow";
+      statusRow.innerHTML = `<span class="hint">Excel wordt uitgelezen…</span>`;
+      listEl.appendChild(statusRow);
+      try {
+        this._excelExtraction = await parseExcel(excelFile);
+        fillFormFromExtraction(this._excelExtraction);
+        const missing = this._excelExtraction.missing;
+        statusRow.innerHTML = missing.length
+          ? `<span class="hint" style="color:var(--warn-ink)">Excel uitgelezen — controleer: ${missing.join(', ')}</span>`
+          : `<span class="hint" style="color:var(--positive-ink)">Excel volledig uitgelezen. Controleer de ingevulde waarden.</span>`;
+      } catch(err) {
+        this._excelExtraction = { error: err.message, found: {}, missing: ['alles'] };
+        statusRow.innerHTML = `<span class="hint" style="color:var(--warn-ink)">Excel kon niet worden uitgelezen — vul handmatig in.</span>`;
+      }
     }
+
+    for(const file of files) {
+      const row = document.createElement("div");
+      row.innerHTML = `<span class="file-name">⏳ ${file.name}</span> <span class="hint">(${(file.size/1024).toFixed(1)} KB) — bezig…</span>`;
+      listEl.appendChild(row);
+      try {
+        const path = await uploadToSupabase(file, name, email, STATE.primary.subgroupId || null);
+        uploadedPaths.push(path);
+        row.innerHTML = `<span class="file-name" style="color:var(--positive-ink)">✓ ${file.name}</span> <span class="hint">(${(file.size/1024).toFixed(1)} KB)</span>`;
+        if(!STATE.uploadFileName) STATE.uploadFileName = file.name;
+      } catch(err) {
+        row.innerHTML = `<span class="file-name" style="color:var(--danger-ink)">✗ ${file.name}</span> <span class="hint">Upload mislukt: ${err.message}</span>`;
+      }
+    }
+
+    const statusRow = document.getElementById("excelStatusRow") || (() => {
+      const r = document.createElement("div"); listEl.appendChild(r); return r;
+    })();
+
+    try {
+      const recordId = await saveExtractedData(email, name, uploadedPaths, this._excelExtraction);
+
+      // PDF AI-extractie starten als er een PDF is geüpload
+      const pdfPath = uploadedPaths.find(p => /\.pdf$/i.test(p));
+      if (pdfPath && recordId) {
+        statusRow.innerHTML = `<span class="hint">PDF wordt geanalyseerd door AI…</span>`;
+        const { error: aiError } = await sb.functions.invoke('extract-pdf', {
+          body: { file_path: pdfPath, record_id: recordId }
+        });
+        if (aiError) {
+          statusRow.innerHTML = `<span class="hint" style="color:var(--warn-ink)">Opgeslagen, maar AI-analyse is mislukt. Controleer de waarden handmatig.</span>`;
+        } else {
+          statusRow.innerHTML = `<span class="hint" style="color:var(--positive-ink)">Opgeslagen én door AI geanalyseerd.</span>`;
+        }
+      } else {
+        statusRow.innerHTML = `<span class="hint" style="color:var(--positive-ink)">Gegevens opgeslagen.</span>`;
+      }
+    } catch(err) {
+      statusRow.innerHTML = `<span class="hint" style="color:var(--danger-ink)">Opslaan mislukt: ${err.message}</span>`;
+    }
+
+    STATE.uploadFileNames = Array.from(listEl.querySelectorAll(".file-name[style*='positive']")).map(el => el.textContent.replace(/^✓ /,""));
   },
   complete(){
     const company = document.getElementById("f_companyName").value.trim();
@@ -1171,7 +1447,8 @@ const Dashboard = {
 
     // documents
     const docs = [];
-    if(STATE.uploadFileName) docs.push({name: STATE.uploadFileName, subgroup: subgroupName(STATE.primary.subgroupId), status:"Ontvangen"});
+    const uploadedNames = STATE.uploadFileNames && STATE.uploadFileNames.length ? STATE.uploadFileNames : (STATE.uploadFileName ? [STATE.uploadFileName] : []);
+    uploadedNames.forEach(n => docs.push({name: n, subgroup: subgroupName(STATE.primary.subgroupId), status:"Ontvangen"}));
     document.getElementById("dashDocuments").innerHTML = docs.length
       ? `<table class="table"><thead><tr><th>Bestand</th><th>Subgroep</th><th>Status</th></tr></thead><tbody>${docs.map(d=>`<tr><td>${d.name}</td><td>${d.subgroup}</td><td><span class="badge b-green">${d.status}</span></td></tr>`).join("")}</tbody></table>`
       : `<div class="empty-state">Nog geen documenten geüpload.</div>`;
