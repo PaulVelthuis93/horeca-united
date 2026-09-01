@@ -1037,6 +1037,97 @@ async function saveExtractedData(email, name, filePaths, excelExtraction) {
   return inserted?.id || null;
 }
 
+// ========== Excel → transactions parser ==========
+const FALLBACK_CATEGORY_ID = '724b56db-25b6-4c93-8d04-08c83247480f'; // Inkoop (overig)
+
+function findCol(header, names) {
+  return header.findIndex(c => names.some(n => String(c).toLowerCase().includes(n)));
+}
+
+function matchCategory(text, keywords) {
+  if (!text) return FALLBACK_CATEGORY_ID;
+  const lower = text.toLowerCase();
+  for (const kw of keywords) {
+    if (lower.includes(kw.keyword.toLowerCase())) return kw.category_id;
+  }
+  return FALLBACK_CATEGORY_ID;
+}
+
+async function parseAndSaveExcel(file, email, name) {
+  const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer, { type: 'array' });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+  // Type herkennen
+  const headerText = rows.slice(0, 25).flat().join(' ').toLowerCase();
+  let type = 'excel';
+  if (headerText.includes('artikelnr') || headerText.includes('artikelnummer') || headerText.includes('art.nr')) {
+    type = 'sligro';
+  } else if (headerText.includes('hanos')) {
+    type = 'hanos';
+  }
+
+  // Load keywords & supplier once — never repeated per row
+  const { data: keywords } = await sb.from('category_keywords')
+    .select('category_id, keyword, priority')
+    .order('priority', { ascending: false });
+  const { data: supplierRow } = await sb.from('suppliers')
+    .select('id').ilike('name', type === 'sligro' ? 'Sligro' : type === 'hanos' ? 'Hanos' : 'Overig')
+    .maybeSingle();
+  const supplierId = supplierRow?.id || null;
+  const kws = keywords || [];
+
+  // Header zoeken (eerste 30 rijen)
+  let headerIdx = rows.findIndex(r =>
+    r.some(c => /artikel|omschrijving|bedrag|product/i.test(String(c)))
+  );
+  if (headerIdx === -1) headerIdx = 0;
+
+  const header = rows[headerIdx].map(c => String(c).toLowerCase());
+  const colArt    = findCol(header, ['artikel', 'art.nr', 'artnr']);
+  const colProd   = findCol(header, ['omschrijving', 'product', 'benaming', 'naam']);
+  const colBedrag = findCol(header, ['bedrag', 'totaal', 'prijs', '€']);
+  const colAantal = findCol(header, ['aantal', 'qty', 'hoeveelheid']);
+
+  const toInsert = [];
+  const today = new Date().toISOString().slice(0, 10);
+
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const row = rows[i];
+    const artikel   = colArt >= 0    ? String(row[colArt] || '').trim() : '';
+    const product   = colProd >= 0   ? String(row[colProd] || '').trim() : '';
+    const bedragStr = colBedrag >= 0 ? String(row[colBedrag] || '0') : '0';
+    const bedrag    = parseFloat(bedragStr.replace(/[^0-9,.-]/g, '').replace(',', '.'));
+    const aantal    = colAantal >= 0 ? parseFloat(String(row[colAantal] || '').replace(',', '.')) || null : null;
+
+    if (!product && !artikel) continue;
+    if (!bedrag || isNaN(bedrag)) continue;
+
+    const categoryId = matchCategory(product || artikel, kws);
+    toInsert.push({
+      category_id: categoryId,
+      supplier_id: supplierId,
+      email,
+      name: name || null,
+      transaction_date: today,
+      article_number: artikel || null,
+      product_name: product || null,
+      amount: bedrag,
+      quantity: aantal,
+      source: type,
+      notes: categoryId === FALLBACK_CATEGORY_ID ? 'Categorie niet automatisch gevonden – later indelen' : null
+    });
+  }
+
+  if (toInsert.length === 0) throw new Error('Geen bruikbare regels gevonden in dit bestand');
+
+  const { error } = await sb.from('transactions').insert(toInsert);
+  if (error) throw error;
+
+  return { aantal: toInsert.length, type };
+}
+
 /* =========================================================
    Horeca United demo — data, state, rendering
    ========================================================= */
@@ -1533,14 +1624,20 @@ const Dashboard = {
     statusEl.textContent = "Bezig met uploaden…";
 
     try {
+      let totalTransactions = 0;
       for(let i = 0; i < this._stagedFiles.length; i++){
         const file = this._stagedFiles[i];
         const subgroup = document.getElementById(`docStagingSg_${i}`).value || null;
         await uploadToSupabase(file, name || null, email, subgroup);
         if(!STATE.uploadFileName) STATE.uploadFileName = file.name;
+        if (/\.xlsx?$/i.test(file.name)) {
+          const result = await parseAndSaveExcel(file, email, name);
+          totalTransactions += result.aantal;
+        }
       }
+      const txMsg = totalTransactions > 0 ? ` ${totalTransactions} transactieregels opgeslagen.` : '';
       statusEl.style.color = "var(--positive-ink)";
-      statusEl.textContent = `${this._stagedFiles.length} bestand(en) succesvol geüpload.`;
+      statusEl.textContent = `${this._stagedFiles.length} bestand(en) succesvol geüpload.${txMsg}`;
       this.clearStaging();
       saveState();
       this.render();
