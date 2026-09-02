@@ -949,18 +949,25 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
    ========================================================= */
 let CURRENT_USER = null;
 
-sb.auth.onAuthStateChange((_event, session) => {
+sb.auth.onAuthStateChange((event, session) => {
   CURRENT_USER = session?.user ?? null;
   AuthUI.updateTopbar();
-  // Re-render dashboard documents if it's visible
-  const dashVisible = document.getElementById('screen-dashboard').classList.contains('active');
-  if (dashVisible) Dashboard.renderDocuments();
+  // After magic link login, open dashboard automatically
+  if (event === 'SIGNED_IN') {
+    AuthUI.closeLogin();
+    Dashboard.open();
+  } else {
+    const dashVisible = document.getElementById('screen-dashboard').classList.contains('active');
+    if (dashVisible) Dashboard.renderDocuments();
+  }
 });
 
-// Restore session on page load
+// Restore session on page load — re-render dashboard if it's already open
 sb.auth.getSession().then(({ data: { session } }) => {
   CURRENT_USER = session?.user ?? null;
   AuthUI.updateTopbar();
+  const dashVisible = document.getElementById('screen-dashboard').classList.contains('active');
+  if (dashVisible) Dashboard.renderDocuments();
 });
 
 /* =========================================================
