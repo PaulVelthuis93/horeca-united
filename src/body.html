@@ -13,8 +13,27 @@
         <button class="btn btn-ghost btn-sm" onclick="AuthUI.openLogin()">Inloggen</button>
       </span>
     </div>
+    <div class="topbar-right">
+      <span id="topbarAuthMobile" style="display:none;align-items:center;gap:8px"></span>
+      <button class="hamburger" onclick="MobileNav.open()" aria-label="Menu openen">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
   </div>
 </div>
+
+<!-- ============ MOBILE NAV ============ -->
+<div class="mobile-nav-overlay" id="mobileNavOverlay" onclick="MobileNav.close()"></div>
+<nav class="mobile-nav" id="mobileNav">
+  <button class="mobile-nav-close" onclick="MobileNav.close()">&times;</button>
+  <a onclick="Router.go('landing');MobileNav.close()">Home</a>
+  <a onclick="Router.go('dashboard');MobileNav.close()">Klantdashboard</a>
+  <a onclick="Router.go('admin');MobileNav.close()">Horeca United beheer</a>
+  <div class="divider"></div>
+  <span id="mobileNavAuth">
+    <button class="mobile-nav-link" onclick="AuthUI.openLogin();MobileNav.close()">Inloggen</button>
+  </span>
+</nav>
 
 <!-- ============ LANDING ============ -->
 <section id="screen-landing" class="screen active">
@@ -429,7 +448,7 @@
           </div>
           <div class="panel card">
             <h3>Jouw subgroepen</h3>
-            <table class="table"><thead><tr><th>Subgroep</th><th>Status</th><th>Kansscore</th><th>Actie</th></tr></thead><tbody id="dashSubgroupTableShort"></tbody></table>
+            <div class="table-wrap"><table class="table"><thead><tr><th>Subgroep</th><th>Status</th><th>Kansscore</th><th>Actie</th></tr></thead><tbody id="dashSubgroupTableShort"></tbody></table></div>
           </div>
           <div class="panel card nba">
             <div>
@@ -444,7 +463,7 @@
         <div id="dashTab-subgroepen" class="dash-tab" style="display:none">
           <div class="panel card">
             <h3>Alle subgroepen</h3>
-            <table class="table"><thead><tr><th>Naam</th><th>Leverancier</th><th>Jaarkosten</th><th>Status</th><th>Kans</th><th>Contracteinde</th><th>Actie</th></tr></thead><tbody id="dashSubgroupTableFull"></tbody></table>
+            <div class="table-wrap"><table class="table"><thead><tr><th>Naam</th><th>Leverancier</th><th>Jaarkosten</th><th>Status</th><th>Kans</th><th>Contracteinde</th><th>Actie</th></tr></thead><tbody id="dashSubgroupTableFull"></tbody></table></div>
           </div>
         </div>
 
@@ -532,7 +551,7 @@
           <div class="panel card">
             <h3>Besparingsoverzicht</h3>
             <p>Indicatieve potentiële besparing per geanalyseerde subgroep. Definitieve bedragen volgen na documentcontrole en eventueel leveranciersvoorstel.</p>
-            <table class="table"><thead><tr><th>Subgroep</th><th>Indicatieve besparing</th><th>Status</th></tr></thead><tbody id="dashSavingsTable"></tbody></table>
+            <div class="table-wrap"><table class="table"><thead><tr><th>Subgroep</th><th>Indicatieve besparing</th><th>Status</th></tr></thead><tbody id="dashSavingsTable"></tbody></table></div>
           </div>
         </div>
 
@@ -575,7 +594,7 @@
               <h3 style="margin:0">Bedrijfsprofiel bewerken</h3>
               <button class="btn btn-ghost btn-sm" onclick="Dashboard.closeProfileEdit()">Annuleren</button>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" id="dashProfileForm">
+            <div class="grid2" id="dashProfileForm">
               <div class="field"><label>Bedrijfsnaam</label><input type="text" id="pf_company" placeholder="Jouw horecazaak"></div>
               <div class="field"><label>Contactpersoon</label><input type="text" id="pf_contact" placeholder="Naam"></div>
               <div class="field"><label>E-mailadres</label><input type="email" id="pf_email" disabled style="background:var(--bg);color:var(--muted)"></div>
@@ -664,13 +683,13 @@
               <option value="name_asc">Sorteer: bedrijfsnaam (A–Z)</option>
             </select>
           </div>
-          <table class="table">
+          <div class="table-wrap"><table class="table">
             <thead><tr>
               <th>Onderneming</th><th>Type / plaats</th><th>Vest.</th><th>1e subgroep</th><th># subgroepen</th>
               <th>Jaarkosten</th><th>Potentieel</th><th>Overstap</th><th>Leadscore</th><th>Fase</th><th>Volgende actie</th>
             </tr></thead>
             <tbody id="admLeadTable"></tbody>
-          </table>
+          </table></div>
           <div id="admEmpty" class="empty-state" style="display:none">Geen ondernemingen gevonden voor deze filters.</div>
         </div>
 

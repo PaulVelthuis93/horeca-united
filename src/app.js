@@ -94,14 +94,35 @@ const AuthUI = {
   },
   updateTopbar() {
     const el = document.getElementById('topbarAuth');
+    const mobileEl = document.getElementById('mobileNavAuth');
     if (CURRENT_USER) {
       const email = CURRENT_USER.email;
       el.innerHTML = `
         <span style="font-size:13px;color:var(--muted)">${email}</span>
         <button class="btn btn-ghost btn-sm" onclick="AuthUI.logout()">Uitloggen</button>`;
+      if (mobileEl) mobileEl.innerHTML = `
+        <span style="font-size:13px;color:var(--muted);padding:10px">${email}</span>
+        <button class="mobile-nav-link" onclick="AuthUI.logout();MobileNav.close()">Uitloggen</button>`;
     } else {
       el.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="AuthUI.openLogin()">Inloggen</button>`;
+      if (mobileEl) mobileEl.innerHTML = `<button class="mobile-nav-link" onclick="AuthUI.openLogin();MobileNav.close()">Inloggen</button>`;
     }
+  }
+};
+
+/* =========================================================
+   MobileNav
+   ========================================================= */
+const MobileNav = {
+  open() {
+    document.getElementById('mobileNav').classList.add('active');
+    document.getElementById('mobileNavOverlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  },
+  close() {
+    document.getElementById('mobileNav').classList.remove('active');
+    document.getElementById('mobileNavOverlay').classList.remove('active');
+    document.body.style.overflow = '';
   }
 };
 

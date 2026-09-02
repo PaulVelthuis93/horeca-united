@@ -44,6 +44,17 @@ a{color:inherit}
 .topbar-links{display:flex;gap:18px;align-items:center;font-size:14px;color:var(--muted)}
 .topbar-links a{text-decoration:none;cursor:pointer}
 .topbar-links a:hover{color:var(--brand)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.hamburger{display:none;background:none;border:1px solid var(--line);border-radius:8px;padding:7px 9px;cursor:pointer;flex-direction:column;gap:4px}
+.hamburger span{display:block;width:18px;height:2px;background:var(--ink);border-radius:2px;transition:.15s}
+.mobile-nav-overlay{display:none;position:fixed;inset:0;background:rgba(22,34,26,.45);z-index:100}
+.mobile-nav-overlay.active{display:block}
+.mobile-nav{position:fixed;top:0;right:0;bottom:0;width:260px;background:#fff;z-index:101;padding:24px 20px;display:flex;flex-direction:column;gap:4px;transform:translateX(100%);transition:transform .2s}
+.mobile-nav.active{transform:translateX(0)}
+.mobile-nav-close{align-self:flex-end;background:none;border:0;font-size:22px;color:var(--muted);cursor:pointer;margin-bottom:8px}
+.mobile-nav a,.mobile-nav button.mobile-nav-link{display:block;padding:12px 10px;border-radius:9px;text-decoration:none;color:var(--ink);font-size:15px;cursor:pointer;border:0;background:none;width:100%;text-align:left;font-family:inherit}
+.mobile-nav a:hover,.mobile-nav button.mobile-nav-link:hover{background:#f2f1ea}
+.mobile-nav .divider{height:1px;background:var(--line);margin:8px 0}
 
 /* ---- buttons ---- */
 .btn{border:0;border-radius:11px;padding:13px 20px;font-weight:600;font-size:14.5px;display:inline-flex;align-items:center;gap:8px;transition:.15s}
@@ -265,6 +276,13 @@ table.table tr.clickable:hover{background:#faf9f4}
   .hero-main{padding:32px 26px}
   .hero-main h1{font-size:32px}
   .pilot-banner{flex-direction:column;text-align:left}
+  .topbar-links{display:none}
+  .hamburger{display:flex}
+  .result-grid{grid-template-columns:repeat(2,1fr)!important}
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .modal{padding:20px}
+  .auth-source-grid{grid-template-columns:1fr!important}
+  .dashProfileForm-grid{grid-template-columns:1fr!important}
 }
 
 
@@ -285,8 +303,27 @@ table.table tr.clickable:hover{background:#faf9f4}
         <button class="btn btn-ghost btn-sm" onclick="AuthUI.openLogin()">Inloggen</button>
       </span>
     </div>
+    <div class="topbar-right">
+      <span id="topbarAuthMobile" style="display:none;align-items:center;gap:8px"></span>
+      <button class="hamburger" onclick="MobileNav.open()" aria-label="Menu openen">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
   </div>
 </div>
+
+<!-- ============ MOBILE NAV ============ -->
+<div class="mobile-nav-overlay" id="mobileNavOverlay" onclick="MobileNav.close()"></div>
+<nav class="mobile-nav" id="mobileNav">
+  <button class="mobile-nav-close" onclick="MobileNav.close()">&times;</button>
+  <a onclick="Router.go('landing');MobileNav.close()">Home</a>
+  <a onclick="Router.go('dashboard');MobileNav.close()">Klantdashboard</a>
+  <a onclick="Router.go('admin');MobileNav.close()">Horeca United beheer</a>
+  <div class="divider"></div>
+  <span id="mobileNavAuth">
+    <button class="mobile-nav-link" onclick="AuthUI.openLogin();MobileNav.close()">Inloggen</button>
+  </span>
+</nav>
 
 <!-- ============ LANDING ============ -->
 <section id="screen-landing" class="screen active">
@@ -701,7 +738,7 @@ table.table tr.clickable:hover{background:#faf9f4}
           </div>
           <div class="panel card">
             <h3>Jouw subgroepen</h3>
-            <table class="table"><thead><tr><th>Subgroep</th><th>Status</th><th>Kansscore</th><th>Actie</th></tr></thead><tbody id="dashSubgroupTableShort"></tbody></table>
+            <div class="table-wrap"><table class="table"><thead><tr><th>Subgroep</th><th>Status</th><th>Kansscore</th><th>Actie</th></tr></thead><tbody id="dashSubgroupTableShort"></tbody></table></div>
           </div>
           <div class="panel card nba">
             <div>
@@ -716,7 +753,7 @@ table.table tr.clickable:hover{background:#faf9f4}
         <div id="dashTab-subgroepen" class="dash-tab" style="display:none">
           <div class="panel card">
             <h3>Alle subgroepen</h3>
-            <table class="table"><thead><tr><th>Naam</th><th>Leverancier</th><th>Jaarkosten</th><th>Status</th><th>Kans</th><th>Contracteinde</th><th>Actie</th></tr></thead><tbody id="dashSubgroupTableFull"></tbody></table>
+            <div class="table-wrap"><table class="table"><thead><tr><th>Naam</th><th>Leverancier</th><th>Jaarkosten</th><th>Status</th><th>Kans</th><th>Contracteinde</th><th>Actie</th></tr></thead><tbody id="dashSubgroupTableFull"></tbody></table></div>
           </div>
         </div>
 
@@ -804,7 +841,7 @@ table.table tr.clickable:hover{background:#faf9f4}
           <div class="panel card">
             <h3>Besparingsoverzicht</h3>
             <p>Indicatieve potentiële besparing per geanalyseerde subgroep. Definitieve bedragen volgen na documentcontrole en eventueel leveranciersvoorstel.</p>
-            <table class="table"><thead><tr><th>Subgroep</th><th>Indicatieve besparing</th><th>Status</th></tr></thead><tbody id="dashSavingsTable"></tbody></table>
+            <div class="table-wrap"><table class="table"><thead><tr><th>Subgroep</th><th>Indicatieve besparing</th><th>Status</th></tr></thead><tbody id="dashSavingsTable"></tbody></table></div>
           </div>
         </div>
 
@@ -847,7 +884,7 @@ table.table tr.clickable:hover{background:#faf9f4}
               <h3 style="margin:0">Bedrijfsprofiel bewerken</h3>
               <button class="btn btn-ghost btn-sm" onclick="Dashboard.closeProfileEdit()">Annuleren</button>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" id="dashProfileForm">
+            <div class="grid2" id="dashProfileForm">
               <div class="field"><label>Bedrijfsnaam</label><input type="text" id="pf_company" placeholder="Jouw horecazaak"></div>
               <div class="field"><label>Contactpersoon</label><input type="text" id="pf_contact" placeholder="Naam"></div>
               <div class="field"><label>E-mailadres</label><input type="email" id="pf_email" disabled style="background:var(--bg);color:var(--muted)"></div>
@@ -936,13 +973,13 @@ table.table tr.clickable:hover{background:#faf9f4}
               <option value="name_asc">Sorteer: bedrijfsnaam (A–Z)</option>
             </select>
           </div>
-          <table class="table">
+          <div class="table-wrap"><table class="table">
             <thead><tr>
               <th>Onderneming</th><th>Type / plaats</th><th>Vest.</th><th>1e subgroep</th><th># subgroepen</th>
               <th>Jaarkosten</th><th>Potentieel</th><th>Overstap</th><th>Leadscore</th><th>Fase</th><th>Volgende actie</th>
             </tr></thead>
             <tbody id="admLeadTable"></tbody>
-          </table>
+          </table></div>
           <div id="admEmpty" class="empty-state" style="display:none">Geen ondernemingen gevonden voor deze filters.</div>
         </div>
 
@@ -1189,14 +1226,35 @@ const AuthUI = {
   },
   updateTopbar() {
     const el = document.getElementById('topbarAuth');
+    const mobileEl = document.getElementById('mobileNavAuth');
     if (CURRENT_USER) {
       const email = CURRENT_USER.email;
       el.innerHTML = `
         <span style="font-size:13px;color:var(--muted)">${email}</span>
         <button class="btn btn-ghost btn-sm" onclick="AuthUI.logout()">Uitloggen</button>`;
+      if (mobileEl) mobileEl.innerHTML = `
+        <span style="font-size:13px;color:var(--muted);padding:10px">${email}</span>
+        <button class="mobile-nav-link" onclick="AuthUI.logout();MobileNav.close()">Uitloggen</button>`;
     } else {
       el.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="AuthUI.openLogin()">Inloggen</button>`;
+      if (mobileEl) mobileEl.innerHTML = `<button class="mobile-nav-link" onclick="AuthUI.openLogin();MobileNav.close()">Inloggen</button>`;
     }
+  }
+};
+
+/* =========================================================
+   MobileNav
+   ========================================================= */
+const MobileNav = {
+  open() {
+    document.getElementById('mobileNav').classList.add('active');
+    document.getElementById('mobileNavOverlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  },
+  close() {
+    document.getElementById('mobileNav').classList.remove('active');
+    document.getElementById('mobileNavOverlay').classList.remove('active');
+    document.body.style.overflow = '';
   }
 };
 
