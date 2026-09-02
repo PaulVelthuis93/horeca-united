@@ -1,0 +1,798 @@
+</head>
+<body>
+
+<div class="shell">
+  <div class="topbar">
+    <div class="logo"><span class="mark">HU</span> Horeca United</div>
+    <div class="topbar-links">
+      <a onclick="Router.go('landing')">Home</a>
+      <a onclick="Router.go('dashboard')">Klantdashboard</a>
+      <a onclick="Router.go('admin')">Horeca United beheer</a>
+      <span class="pill">Founding Pilot · demo</span>
+      <span id="topbarAuth" style="display:flex;align-items:center;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="AuthUI.openLogin()">Inloggen</button>
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ LANDING ============ -->
+<section id="screen-landing" class="screen active">
+  <div class="shell">
+    <div class="hero">
+      <div class="panel hero-main">
+        <span class="pill">Het digitale besturingssysteem voor de horeca ondernemer</span>
+        <h1 style="margin-top:14px">Van collectief inkopen naar een platform dat continu voor de ondernemer werkt.</h1>
+        <p>Start met één kostenpost. Upload zelf een factuur of machtig Horeca United om de benodigde gegevens namens jouw onderneming op te vragen — jij houdt altijd zelf de controle.</p>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="QuickScan.start()">Start gratis Quick Scan</button>
+          <button class="btn btn-ghost" onclick="Dashboard.open()">Bekijk voorbeeld-dashboard</button>
+        </div>
+      </div>
+      <div class="panel hero-side">
+        <div class="today-head">
+          <h3 style="margin:0;font-size:16px">Vandaag</h3>
+          <span class="today-badge">2 acties</span>
+        </div>
+        <div class="today-card today-card--green">
+          <strong>Nieuw biervoorstel</strong>
+          <span>Geschatte besparing: €6.400 per jaar</span>
+        </div>
+        <div class="today-card today-card--yellow">
+          <strong>Contract loopt af</strong>
+          <span>Telefonie: nog 63 dagen tot actie</span>
+        </div>
+        <div class="today-card today-card--brand">
+          <strong>Totaal bespaard</strong>
+          <span>€18.460 sinds aansluiting</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="shell">
+      <div class="section-head">
+        <span class="eyebrow">Hoe het werkt</span>
+        <h2>Van eerste scan naar volledig kostenoverzicht</h2>
+      </div>
+      <div class="steps3">
+        <div class="panel step-card"><div class="step-num">01 — Scan</div><h3>Vertel ons over je zaak</h3><p>Beantwoord een paar vragen over je onderneming en selecteer de kostenposten die voor jou relevant zijn.</p></div>
+        <div class="panel step-card"><div class="step-num">02 — Analyse</div><h3>Kies je eerste kostenpost</h3><p>Upload zelf een document, of machtig Horeca United om gegevens bij je leverancier op te vragen. Jij bepaalt het tempo.</p></div>
+        <div class="panel step-card"><div class="step-num">03 — Overzicht</div><h3>Bekijk je besparingskansen</h3><p>Je krijgt een indicatieve inschatting en een persoonlijk dashboard dat meegroeit met elke subgroep die je opent.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" style="padding-top:0">
+    <div class="shell">
+      <div class="section-head">
+        <span class="eyebrow">Waarom Horeca United</span>
+        <h2>Eén operating system, niet nog een losse besparingstool</h2>
+      </div>
+      <div class="benefits">
+        <div class="panel benefit"><div class="dot"></div><div><strong>Alle kostencategorieën, één omgeving</strong><p>Van bier en energie tot verzekeringen en kassasystemen — je hoeft niet voor elke besparing een ander platform te openen.</p></div></div>
+        <div class="panel benefit"><div class="dot"></div><div><strong>Jij houdt de regie</strong><p>Machtigingen zijn altijd beperkt tot één subgroep en leverancier, met een geldigheidsduur die je zelf instelt.</p></div></div>
+        <div class="panel benefit"><div class="dot"></div><div><strong>Start licht, groei op eigen tempo</strong><p>Begin met één document. Open volgende subgroepen wanneer het jou uitkomt — geen verplichting om over te stappen.</p></div></div>
+        <div class="panel benefit"><div class="dot"></div><div><strong>Gebouwd voor de horeca</strong><p>Herkenbare kostenposten, realistische bandbreedtes en een aanpak die past bij hoe horecaondernemers werken.</p></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" style="padding-top:0">
+    <div class="shell">
+      <div class="section-head">
+        <span class="eyebrow">Subgroepen</span>
+        <h2>Wat Horeca United voor je in kaart kan brengen</h2>
+      </div>
+      <div class="subgroup-groups" id="subgroupOverview"></div>
+    </div>
+  </div>
+
+  <div class="section" style="padding-top:0">
+    <div class="shell">
+      <div class="pilot-banner">
+        <div>
+          <h2>Founding Pilot</h2>
+          <p>We werken de eerste versie van Horeca United uit samen met 50 tot 100 horecazaken. Als Founding Pilot-deelnemer denk je mee over de richting en profiteer je als eerste van collectieve inkoopvoordelen.</p>
+        </div>
+        <button class="btn btn-secondary" style="background:#fff" onclick="QuickScan.start()">Doe mee als pilotdeelnemer</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" style="padding-top:0">
+    <div class="shell">
+      <div class="section-head">
+        <span class="eyebrow">Privacy &amp; vertrouwen</span>
+        <h2>Wat we wel — en nadrukkelijk niet — doen</h2>
+      </div>
+      <div class="trust-row">
+        <div class="panel trust-item"><strong>Eerste scan binnen 5 minuten</strong><p>Zonder verplichtingen, zonder verborgen kosten.</p></div>
+        <div class="panel trust-item"><strong>Start met één document</strong><p>Je hoeft niet meteen je hele administratie te delen.</p></div>
+        <div class="panel trust-item"><strong>Beperkte, intrekbare machtigingen</strong><p>Gekoppeld aan één subgroep, met een zelf gekozen looptijd.</p></div>
+        <div class="panel trust-item"><strong>Geen verplichting om over te stappen</strong><p>Een besparingskans is een advies, geen verplichting.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta-final shell">
+    <h2>Klaar om je eerste besparingskans te vinden?</h2>
+    <p style="max-width:44ch;margin:8px auto 0">Het kost je vijf minuten. Je kiest zelf hoe je begint.</p>
+    <div class="actions" style="justify-content:center">
+      <button class="btn btn-primary" onclick="QuickScan.start()">Start gratis Quick Scan</button>
+    </div>
+  </div>
+
+  <div class="shell footer">
+    <div>Horeca United — Horeca United Operating System. Conceptdemo, geen productieomgeving.</div>
+    <div>Indicatieve berekeningen · geen financieel advies · <a onclick="Router.go('privacy')" style="text-decoration:underline;cursor:pointer">Privacyverklaring</a> · <a onclick="AdminApp.open()" style="text-decoration:underline;cursor:pointer">Horeca United beheer</a></div>
+  </div>
+</section>
+
+<!-- ============ QUICK SCAN ============ -->
+<section id="screen-scan" class="screen">
+  <div class="shell">
+    <div class="wizard">
+      <div class="top-actions">
+        <div>
+          <span class="pill">Quick Scan</span>
+          <h2 id="scanStepTitle" style="margin-top:10px">Over jouw zaak</h2>
+        </div>
+        <div class="step-count">Stap <span id="scanStepNr">1</span> van 5</div>
+      </div>
+      <div class="progress"><div id="scanProgressBar" style="width:20%"></div></div>
+
+      <!-- STEP 1 -->
+      <div id="scanStep1" class="card scan-step">
+        <div class="grid2">
+          <div class="field">
+            <label for="f_businessType">Type horecazaak</label>
+            <select id="f_businessType">
+              <option>Restaurant</option><option>Café</option><option>Hotel</option><option>Lunchroom</option>
+              <option>Cafetaria / fastservice</option><option>Eventlocatie</option><option>Catering</option><option>Overig</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f_city">Vestigingsplaats</label>
+            <input type="text" id="f_city" placeholder="Bijv. Arnhem">
+            <div class="error-text" id="err_city" style="display:none">Vul een vestigingsplaats in.</div>
+          </div>
+          <div class="field">
+            <label for="f_turnover">Jaaromzet</label>
+            <select id="f_turnover">
+              <option>&lt; €250.000</option><option>€250.000 – €500.000</option><option selected>€500.000 – €1.000.000</option>
+              <option>€1.000.000 – €2.500.000</option><option>&gt; €2.500.000</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f_locations">Aantal vestigingen</label>
+            <select id="f_locations"><option>1</option><option>2</option><option>3 – 5</option><option>6+</option></select>
+          </div>
+          <div class="field">
+            <label for="f_employees">Aantal medewerkers <span class="hint">(optioneel)</span></label>
+            <select id="f_employees"><option value="">— niet opgeven —</option><option>1 – 5</option><option>6 – 15</option><option>16 – 40</option><option>40+</option></select>
+          </div>
+        </div>
+        <div class="actions"><button class="btn btn-primary" onclick="QuickScan.next()">Verder</button></div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div id="scanStep2" class="card scan-step" style="display:none">
+        <p>Selecteer de kostenposten die voor jouw bedrijf relevant zijn. Je hoeft nu nog geen details in te vullen.</p>
+        <div id="subgroupChoices"></div>
+        <div class="error-text" id="err_subgroups" style="display:none">Selecteer minimaal één subgroep.</div>
+        <div class="actions">
+          <button class="btn btn-ghost" onclick="QuickScan.prev()">Terug</button>
+          <button class="btn btn-primary" onclick="QuickScan.next()">Verder</button>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div id="scanStep3" class="card scan-step" style="display:none">
+        <div class="field">
+          <label for="f_primarySubgroup">Kies je eerste analyse</label>
+          <span class="hint">Dit is de subgroep waar we direct mee aan de slag gaan.</span>
+          <select id="f_primarySubgroup" style="margin-top:6px"></select>
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="f_supplier">Huidige leverancier</label>
+            <input type="text" id="f_supplier" placeholder="Bijv. Regionale drankenhandel">
+          </div>
+          <div class="field">
+            <label for="f_annualSpend">Geschatte jaarlijkse kosten</label>
+            <select id="f_annualSpend">
+              <option value="4000">&lt; €5.000</option>
+              <option value="9000" selected>€5.000 – €15.000</option>
+              <option value="22000">€15.000 – €30.000</option>
+              <option value="45000">€30.000 – €60.000</option>
+              <option value="80000">&gt; €60.000</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f_contractStatus">Contractstatus</label>
+            <select id="f_contractStatus"><option>Actief contract</option><option>Geen vast contract</option><option>Onbekend</option></select>
+          </div>
+          <div class="field">
+            <label for="f_contractEnd">Looptijd / vermoedelijke einddatum</label>
+            <input type="text" id="f_contractEnd" placeholder="Bijv. december 2026">
+          </div>
+        </div>
+        <div class="field">
+          <label>Bereidheid om over te stappen bij aantoonbaar voordeel</label>
+          <div class="choices" id="switchWillingness" style="grid-template-columns:repeat(3,1fr)">
+            <div class="tile" data-val="ja"><span class="box"></span> Ja</div>
+            <div class="tile" data-val="misschien"><span class="box"></span> Misschien, bij duidelijk voordeel</div>
+            <div class="tile" data-val="nee"><span class="box"></span> Nee, alleen benchmarken</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-ghost" onclick="QuickScan.prev()">Terug</button>
+          <button class="btn btn-primary" onclick="QuickScan.next()">Verder</button>
+        </div>
+      </div>
+
+      <!-- STEP 4 -->
+      <div id="scanStep4" class="card scan-step" style="display:none">
+        <p>Kies hoe je de gegevens voor je eerste analyse aanlevert.</p>
+        <div class="method-choices">
+          <div class="method-card" data-method="upload" onclick="QuickScan.selectMethod('upload')"><strong>Zelf uploaden</strong><p>Factuur, contract, jaarafrekening of offerte.</p></div>
+          <div class="method-card" data-method="request" onclick="QuickScan.selectMethod('request')"><strong>Horeca United vraagt gegevens op</strong><p>Via een beperkte, intrekbare machtiging.</p></div>
+          <div class="method-card" data-method="later" onclick="QuickScan.selectMethod('later')"><strong>Later aanleveren</strong><p>Rond de scan nu af, upload later in je dashboard.</p></div>
+        </div>
+
+        <div id="methodUpload" class="method-panel" style="display:none">
+          <div class="grid2" style="margin-bottom:12px">
+            <div class="field"><label for="u_bier">Volume bier (liter of hl)</label><input type="number" step="any" id="u_bier" placeholder="bijv. 1200"></div>
+            <div class="field"><label for="u_elektra">Volume elektra (kWh)</label><input type="number" step="any" id="u_elektra" placeholder="bijv. 4500"></div>
+            <div class="field"><label for="u_gas">Volume gas (m³)</label><input type="number" step="any" id="u_gas" placeholder="bijv. 800"></div>
+            <div class="field"><label for="u_frisdrank">Volume frisdrank</label><input type="number" step="any" id="u_frisdrank" placeholder="bijv. 300"></div>
+            <div class="field"><label for="u_vuilnis_kosten">Kosten vuilnis (€)</label><input type="number" step="any" id="u_vuilnis_kosten" placeholder="bijv. 185.50"></div>
+            <div class="field"><label for="u_vuilnis_container">Type / maat container</label><input type="text" id="u_vuilnis_container" placeholder="bijv. 1100L restafval"></div>
+          </div>
+          <div class="field" style="margin-bottom:14px"><label for="u_verzekering">Verzekering – wat is gedekt?</label><textarea id="u_verzekering" rows="2" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px;resize:vertical" placeholder="Bijv. inventaris, bedrijfsschade, aansprakelijkheid…"></textarea></div>
+          <div class="upload-box" id="uploadBox"
+               onclick="document.getElementById('fileInput').click()"
+               ondragover="event.preventDefault();this.classList.add('dragover')"
+               ondragleave="this.classList.remove('dragover')"
+               ondrop="this.classList.remove('dragover');QuickScan.handleFiles(event.dataTransfer.files)">
+            <input type="file" id="fileInput" style="display:none" multiple accept=".xlsx,.xls,.pdf,.csv,.doc,.docx" onchange="QuickScan.handleFiles(this.files)">
+            <div id="uploadBoxText">Sleep bestanden hierheen of klik om te selecteren<br><span class="hint">Factuur, contract, jaarafrekening of offerte (Excel, PDF, Word)</span></div>
+          </div>
+          <div class="upload-file-list" id="uploadFileList"></div>
+        </div>
+
+        <div id="methodRequest" class="method-panel" style="display:none">
+          <div class="note" style="margin-bottom:16px">Deze machtiging geldt uitsluitend voor de geselecteerde subgroep en leverancier, alleen voor gegevens die nodig zijn voor de analyse, en voor een beperkte geldigheidsduur. Ze geeft <strong>geen</strong> toestemming om contracten op te zeggen, leveranciers te wijzigen, nieuwe contracten aan te gaan, betalingen uit te voeren of bestellingen te plaatsen. Daarvoor is later altijd een aparte opdracht of volmacht nodig.</div>
+          <div class="grid2">
+            <div class="field"><label for="f_signName">Naam tekenbevoegde</label><input type="text" id="f_signName"></div>
+            <div class="field"><label for="f_signRole">Functie</label><input type="text" id="f_signRole" placeholder="Bijv. eigenaar"></div>
+            <div class="field"><label for="f_kvk">KvK-nummer</label><input type="text" id="f_kvk" placeholder="8 cijfers"></div>
+            <div class="field"><label for="f_validity">Geldigheidsduur</label><select id="f_validity"><option>30 dagen</option><option selected>60 dagen</option><option>90 dagen</option></select></div>
+          </div>
+          <div class="consent-row">
+            <input type="checkbox" id="f_authConsent">
+            <label for="f_authConsent">Ik machtig Horeca United om namens mijn onderneming gegevens op te vragen bij de hierboven genoemde leverancier, uitsluitend voor de geselecteerde subgroep en binnen de gekozen geldigheidsduur. <span class="req">verplicht</span></label>
+          </div>
+        </div>
+
+        <div id="methodLater" class="method-panel" style="display:none">
+          <div class="success-box">Geen probleem — je kunt de Quick Scan afronden en dit document later toevoegen via je klantdashboard.</div>
+        </div>
+
+        <div class="error-text" id="err_method" style="display:none">Kies een van de drie opties om verder te gaan.</div>
+        <div class="actions">
+          <button class="btn btn-ghost" onclick="QuickScan.prev()">Terug</button>
+          <button class="btn btn-primary" onclick="QuickScan.next()">Verder</button>
+        </div>
+      </div>
+
+      <!-- STEP 5 -->
+      <div id="scanStep5" class="card scan-step" style="display:none">
+        <div class="grid2">
+          <div class="field"><label for="f_companyName">Bedrijfsnaam</label><input type="text" id="f_companyName" placeholder="Bijv. Restaurant Het Stadshuis"></div>
+          <div class="field"><label for="f_contactPerson">Contactpersoon</label><input type="text" id="f_contactPerson"></div>
+          <div class="field"><label for="f_email">E-mailadres</label><input type="email" id="f_email"></div>
+          <div class="field"><label for="f_phone">Telefoonnummer</label><input type="tel" id="f_phone"></div>
+        </div>
+        <div class="error-text" id="err_account" style="display:none">Vul minimaal bedrijfsnaam en e-mailadres in.</div>
+        <div style="margin-top:8px">
+          <div class="consent-row">
+            <input type="checkbox" id="f_consentPrivacy">
+            <label for="f_consentPrivacy">Ik heb kennisgenomen van de <a onclick="Router.go('privacy')" style="text-decoration:underline;cursor:pointer">privacyverklaring</a>. <span class="req">verplicht</span></label>
+          </div>
+          <div class="consent-row">
+            <input type="checkbox" id="f_consentProcessing">
+            <label for="f_consentProcessing">Ik geef toestemming voor verwerking van mijn gegevens ten behoeve van de Quick Scan. <span class="req">verplicht</span></label>
+          </div>
+          <div class="consent-row">
+            <input type="checkbox" id="f_consentMarketing">
+            <label for="f_consentMarketing">Ik ontvang graag optionele marketingcommunicatie van Horeca United.</label>
+          </div>
+          <div class="consent-row">
+            <input type="checkbox" id="f_consentBenchmark">
+            <label for="f_consentBenchmark">Ik geef Horeca United toestemming om mijn geanonimiseerde gegevens te gebruiken voor benchmarks.</label>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-ghost" onclick="QuickScan.prev()">Terug</button>
+          <button class="btn btn-primary" onclick="QuickScan.complete()">Bekijk mijn voorlopige uitslag</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RESULT ============ -->
+<section id="screen-result" class="screen">
+  <div class="shell">
+    <div class="result-wrap">
+      <span class="pill">Voorlopige uitslag</span>
+      <h2 style="margin-top:14px">Indicatieve potentiële jaarbesparing</h2>
+      <div class="result-figure" id="resultRange">€3.000 – €8.000</div>
+      <p id="resultSummary" style="max-width:48ch;margin:0 auto 6px">Je eerste analyse staat klaar. Horeca United gebruikt deze uitkomst om de meest kansrijke volgende subgroepen te adviseren.</p>
+      <div class="note-strong" style="max-width:48ch;margin:16px auto 0">Deze uitkomst is indicatief. Een definitieve analyse volgt pas na documentcontrole.</div>
+
+      <div class="result-grid">
+        <div class="panel result-stat"><span>Eerste subgroep</span><strong id="resultPrimary">—</strong></div>
+        <div class="panel result-stat"><span>Status analyse</span><strong id="resultStatus">—</strong></div>
+        <div class="panel result-stat"><span>Subgroepen geselecteerd</span><strong id="resultCount">—</strong></div>
+        <div class="panel result-stat"><span>Profiel voltooid</span><strong id="resultProfilePct">—</strong></div>
+      </div>
+
+      <div class="panel card" style="text-align:left">
+        <h3>Aanbevolen volgende subgroepen</h3>
+        <p id="resultRecommendations">—</p>
+      </div>
+
+      <div class="actions" style="justify-content:center">
+        <button class="btn btn-primary" onclick="Dashboard.open()">Open mijn klantdashboard</button>
+        <button class="btn btn-ghost" onclick="Router.go('landing')">Terug naar home</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CUSTOMER DASHBOARD ============ -->
+<section id="screen-dashboard" class="screen">
+  <div class="shell">
+    <div class="app-layout">
+      <nav class="panel side-nav">
+        <div class="brand-mini">Horeca <span style="color:var(--brand2)">United</span></div>
+        <a data-dash="overzicht" class="active" onclick="Dashboard.showTab('overzicht')">Overzicht</a>
+        <a data-dash="subgroepen" onclick="Dashboard.showTab('subgroepen')">Subgroepen</a>
+        <a data-dash="documenten" onclick="Dashboard.showTab('documenten')">Documenten</a>
+        <a data-dash="contracten" onclick="Dashboard.showTab('contracten')">Contracten</a>
+        <a data-dash="besparingen" onclick="Dashboard.showTab('besparingen')">Besparingen</a>
+        <a data-dash="machtigingen" onclick="Dashboard.showTab('machtigingen')">Machtigingen</a>
+        <a data-dash="profiel" onclick="Dashboard.showTab('profiel')">Profiel</a>
+        <div class="divider"></div>
+        <a onclick="Router.go('landing')">← Terug naar home</a>
+        <a onclick="AdminApp.open()">Horeca United beheer</a>
+      </nav>
+
+      <div class="content-col">
+        <div class="page-head">
+          <div>
+            <h2 id="dashCompanyName">Voorbeeld Horecazaak</h2>
+            <p style="margin:0">Klantdashboard · Founding Pilot deelnemer</p>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="DemoData.reset()">Demo-invoer resetten</button>
+        </div>
+
+        <!-- Demo / onboarding banner — only shown when not logged in -->
+        <div id="dashDemoBanner" class="panel card" style="display:none;background:var(--warn-bg);border-color:#e9cf8c">
+          <div class="nba">
+            <div>
+              <strong style="color:var(--warn-ink)">Je bekijkt nu voorbeelddata</strong>
+              <p style="margin:4px 0 0;color:var(--warn-ink)">Log in met je e-mailadres om je eigen documenten en analysecijfers te zien, of upload direct een factuur.</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap">
+              <button class="btn btn-primary btn-sm" onclick="AuthUI.openLogin()">Inloggen</button>
+              <button class="btn btn-ghost btn-sm" onclick="Dashboard.showTab('documenten')">Document uploaden</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="panel stat"><span>Potentiële besparing</span><strong class="pos" id="dashPotential">—</strong></div>
+          <div class="panel stat"><span>Gerealiseerde besparing</span><strong id="dashRealized">€0</strong></div>
+          <div class="panel stat"><span>Documenten</span><strong id="dashDocsCount">—</strong></div>
+          <div class="panel stat"><span>Profiel voltooid</span><strong id="dashProfilePct">—</strong></div>
+        </div>
+
+        <!-- TAB: overzicht -->
+        <div id="dashTab-overzicht" class="dash-tab">
+          <div id="dashRealSummary" style="display:none">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
+              <div class="panel stat"><span>Totale uitgaven</span><strong class="pos" id="dashTotalSpend">—</strong></div>
+              <div class="panel stat"><span>Categorieën geanalyseerd</span><strong id="dashCatCount">—</strong></div>
+              <div class="panel stat"><span>Potentiële besparing</span><strong class="pos" id="dashPotential">—</strong></div>
+              <div class="panel stat"><span>Profiel voltooid</span><strong id="dashProfilePct">—</strong></div>
+            </div>
+          </div>
+          <div id="dashDemoSummary" style="display:none">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
+              <div class="panel stat"><span>Potentiële besparing</span><strong class="pos" id="dashPotentialDemo">—</strong></div>
+              <div class="panel stat"><span>Profiel voltooid</span><strong id="dashProfilePctDemo">—</strong></div>
+            </div>
+          </div>
+          <div class="panel card">
+            <div class="page-head" style="margin-bottom:10px"><h3 style="margin:0">Voortgang van je profiel</h3><span id="dashProfilePct2" class="step-count">—</span></div>
+            <div class="progress-mini"><div id="dashProfileBar" style="width:20%"></div></div>
+          </div>
+          <div class="panel card" id="dashBenchmarkCard" style="display:none">
+            <h3>Jouw uitgaven vs. groepsgemiddelde</h3>
+            <p style="font-size:13px;color:var(--muted)">Vergelijking op basis van geanonimiseerde data van alle Horeca United deelnemers.</p>
+            <div id="dashBenchmarkChart" style="margin-top:16px"></div>
+          </div>
+          <div class="panel card">
+            <h3>Jouw subgroepen</h3>
+            <table class="table"><thead><tr><th>Subgroep</th><th>Status</th><th>Kansscore</th><th>Actie</th></tr></thead><tbody id="dashSubgroupTableShort"></tbody></table>
+          </div>
+          <div class="panel card nba">
+            <div>
+              <h3 style="margin-bottom:4px">Volgende beste actie</h3>
+              <p id="dashNextAction">Open een volgende subgroep om je profiel te completeren.</p>
+            </div>
+            <button class="btn btn-primary" onclick="Dashboard.showTab('subgroepen')">Bekijk subgroepen</button>
+          </div>
+        </div>
+
+        <!-- TAB: subgroepen -->
+        <div id="dashTab-subgroepen" class="dash-tab" style="display:none">
+          <div class="panel card">
+            <h3>Alle subgroepen</h3>
+            <table class="table"><thead><tr><th>Naam</th><th>Leverancier</th><th>Jaarkosten</th><th>Status</th><th>Kans</th><th>Contracteinde</th><th>Actie</th></tr></thead><tbody id="dashSubgroupTableFull"></tbody></table>
+          </div>
+        </div>
+
+        <!-- TAB: documenten -->
+        <div id="dashTab-documenten" class="dash-tab" style="display:none">
+          <div class="panel card">
+            <h3>Document uploaden</h3>
+            <div class="grid2" style="margin-bottom:14px">
+              <div class="field">
+                <label for="docUploadName">Volledige naam <span class="hint">(optioneel)</span></label>
+                <input type="text" id="docUploadName" placeholder="Jan de Vries">
+              </div>
+              <div class="field">
+                <label for="docUploadEmail">E-mailadres</label>
+                <input type="email" id="docUploadEmail" placeholder="jij@voorbeeld.nl">
+              </div>
+            </div>
+            <div class="upload-box" id="docUploadBox" onclick="document.getElementById('docFileInput').click()">
+              <input type="file" id="docFileInput" style="display:none" accept=".xlsx,.pdf,.xls" multiple onchange="Dashboard.stageFiles(this)">
+              <div id="docUploadBoxText">Klik om bestand(en) te selecteren (factuur, contract, jaarafrekening of offerte)</div>
+            </div>
+            <div id="docStagingArea" style="display:none;margin-top:14px">
+              <table class="table" id="docStagingTable">
+                <thead><tr><th>Bestand</th><th>Subgroep <span style="font-weight:400;text-transform:none;font-family:var(--font-body)">(optioneel)</span></th></tr></thead>
+                <tbody id="docStagingBody"></tbody>
+              </table>
+              <div class="actions" style="margin-top:12px">
+                <button class="btn btn-primary" onclick="Dashboard.submitStagedFiles()">Uploaden</button>
+                <button class="btn btn-ghost" onclick="Dashboard.clearStaging()">Annuleren</button>
+              </div>
+            </div>
+            <div id="docUploadStatus" style="margin-top:10px;font-size:13px"></div>
+          </div>
+          <div class="panel card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <h3 style="margin:0">Geüploade documenten</h3>
+              <span id="docsLoginNote" style="display:none;font-size:12.5px;color:var(--muted)">
+                <a onclick="AuthUI.openLogin()" style="cursor:pointer;text-decoration:underline;color:var(--brand2)">Log in</a> om je eigen documenten te zien
+              </span>
+            </div>
+            <div id="dashDocuments"></div>
+          </div>
+        </div>
+
+        <!-- TAB: contracten -->
+        <div id="dashTab-contracten" class="dash-tab" style="display:none">
+          <div class="panel card">
+            <h3>Contracten &amp; abonnementen</h3>
+            <p style="font-size:13px;color:var(--muted)">Overzicht van gevonden contracten op basis van geüploade documenten.</p>
+            <div id="dashContractBody"><div class="empty-state">Laden…</div></div>
+          </div>
+        </div>
+
+        <!-- TAB: besparingen -->
+        <div id="dashTab-besparingen" class="dash-tab" style="display:none">
+          <div class="panel card">
+            <h3>Uitgaven per categorie</h3>
+            <p style="font-size:13px;color:var(--muted)">Totaal geanalyseerde inkoopuitgaven op basis van geüploade facturen.</p>
+            <div id="dashSpendChart" style="margin-top:16px"></div>
+          </div>
+          <div class="panel card">
+            <h3>Besparingsoverzicht</h3>
+            <p>Indicatieve potentiële besparing per geanalyseerde subgroep. Definitieve bedragen volgen na documentcontrole en eventueel leveranciersvoorstel.</p>
+            <table class="table"><thead><tr><th>Subgroep</th><th>Indicatieve besparing</th><th>Status</th></tr></thead><tbody id="dashSavingsTable"></tbody></table>
+          </div>
+        </div>
+
+        <!-- TAB: machtigingen -->
+        <div id="dashTab-machtigingen" class="dash-tab" style="display:none">
+          <div class="panel card">
+            <div class="page-head" style="margin-bottom:14px">
+              <div>
+                <h3 style="margin:0">Privacy &amp; Machtigingen</h3>
+                <p style="margin:4px 0 0;font-size:13px">Beheer per databron welke gegevens Horeca United namens jou mag opvragen. Je kunt altijd intrekken.</p>
+              </div>
+            </div>
+            <div id="authSourceGrid" class="auth-source-grid">
+              <div class="empty-state">Laden…</div>
+            </div>
+          </div>
+          <div class="panel card" id="authHistoryCard" style="display:none">
+            <h3>Machtigingshistorie</h3>
+            <p style="font-size:13px">Iedere handeling wordt vastgelegd. Deze lijst kan niet worden gewijzigd.</p>
+            <div id="authEventList"></div>
+          </div>
+        </div>
+
+        <!-- TAB: profiel -->
+        <div id="dashTab-profiel" class="dash-tab" style="display:none">
+          <!-- View mode -->
+          <div class="panel card" id="dashProfileView">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+              <div>
+                <h3 style="margin:0">Bedrijfsprofiel</h3>
+                <p style="margin:4px 0 0;font-size:13px;color:var(--muted)">Gegevens die zijn ingevuld tijdens de Quick Scan.</p>
+              </div>
+              <button class="btn btn-ghost btn-sm" id="dashProfileEditBtn" onclick="Dashboard.openProfileEdit()">Bewerken</button>
+            </div>
+            <div class="kv" id="dashProfileKv"></div>
+          </div>
+          <!-- Edit mode -->
+          <div class="panel card" id="dashProfileEdit" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+              <h3 style="margin:0">Bedrijfsprofiel bewerken</h3>
+              <button class="btn btn-ghost btn-sm" onclick="Dashboard.closeProfileEdit()">Annuleren</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" id="dashProfileForm">
+              <div class="field"><label>Bedrijfsnaam</label><input type="text" id="pf_company" placeholder="Jouw horecazaak"></div>
+              <div class="field"><label>Contactpersoon</label><input type="text" id="pf_contact" placeholder="Naam"></div>
+              <div class="field"><label>E-mailadres</label><input type="email" id="pf_email" disabled style="background:var(--bg);color:var(--muted)"></div>
+              <div class="field"><label>Telefoon</label><input type="tel" id="pf_phone" placeholder="+31 6 ..."></div>
+              <div class="field"><label>Type horecazaak</label>
+                <select id="pf_type">
+                  <option value="">— Kies type —</option>
+                  <option>Restaurant</option><option>Café/Bar</option><option>Hotel</option>
+                  <option>Fastfood/Snackbar</option><option>Catering</option><option>Overig</option>
+                </select>
+              </div>
+              <div class="field"><label>Vestigingsplaats</label><input type="text" id="pf_city" placeholder="Stad"></div>
+              <div class="field"><label>Jaaromzet</label>
+                <select id="pf_turnover">
+                  <option value="">— Kies range —</option>
+                  <option>Minder dan € 100.000</option><option>€ 100.000 – € 250.000</option>
+                  <option>€ 250.000 – € 450.000</option><option>€ 450.000 – € 750.000</option>
+                  <option>€ 750.000 – € 1.500.000</option><option>Meer dan € 1.500.000</option>
+                </select>
+              </div>
+              <div class="field"><label>Aantal vestigingen</label><input type="number" id="pf_locations" min="1" placeholder="1"></div>
+              <div class="field"><label>KVK-nummer</label><input type="text" id="pf_kvk" placeholder="12345678"></div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px">
+              <button class="btn btn-primary" onclick="Dashboard.saveProfile()">Opslaan</button>
+              <button class="btn btn-ghost" onclick="Dashboard.closeProfileEdit()">Annuleren</button>
+            </div>
+            <div id="dashProfileSaveStatus" style="margin-top:10px;font-size:13px"></div>
+          </div>
+          <div class="panel card" id="dashProfileStats" style="display:none">
+            <h3>Jouw cijfers op basis van uploads</h3>
+            <div class="kv" id="dashProfileStatsKv"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ADMIN ============ -->
+<section id="screen-admin" class="screen">
+  <div class="shell">
+    <div class="app-layout">
+      <nav class="panel side-nav">
+        <div class="brand-mini">Horeca United <span style="color:var(--brand2)">beheer</span></div>
+        <a class="active" onclick="AdminApp.showTab('leads')">Pilot-overzicht</a>
+        <a onclick="AdminApp.showTab('machtigingen')">Machtigingen</a>
+        <a>Leads</a>
+        <a>Ondernemingen</a>
+        <a>Leveranciers</a>
+        <a>Collectieve kansen</a>
+        <div class="divider"></div>
+        <a onclick="Dashboard.open()">← Klantdashboard</a>
+        <a onclick="Router.go('landing')">Home</a>
+      </nav>
+
+      <div class="content-col">
+        <div class="page-head">
+          <div><span class="pill">Founding Pilot</span><h2 style="margin-top:8px">Pilot-overzicht — leads &amp; analyse</h2></div>
+        </div>
+
+        <div class="stats-row">
+          <div class="panel stat"><span>Pilotdeelnemers</span><strong id="admKpiParticipants">63</strong></div>
+          <div class="panel stat"><span>Met ≥1 document</span><strong id="admKpiDocs">41</strong></div>
+          <div class="panel stat"><span>Kansrijke leads</span><strong id="admKpiHot">27</strong></div>
+          <div class="panel stat"><span>Potentiële poolwaarde</span><strong id="admKpiPool">€2,4 mln</strong></div>
+        </div>
+        <div class="stats-row">
+          <div class="panel stat"><span>Totale jaarkosten in kaart</span><strong id="admKpiTotalCosts">—</strong></div>
+          <div class="panel stat"><span>Aankomende contractmomenten</span><strong id="admKpiContracts">—</strong></div>
+          <div class="panel stat"><span>Gem. profielvoltooiing</span><strong id="admKpiAvgProfile">—</strong></div>
+          <div class="panel stat"><span>Actieve pilotklanten</span><strong id="admKpiActive">—</strong></div>
+        </div>
+
+        <div class="panel card">
+          <div class="toolbar">
+            <input type="text" id="admSearch" placeholder="Zoek op bedrijfsnaam of plaats…" oninput="AdminApp.renderLeads()">
+            <select id="admFilterPhase" onchange="AdminApp.renderLeads()">
+              <option value="">Alle fases</option>
+              <option>Quick Scan gestart</option><option>Nieuwe lead</option><option>Actieve pilotklant</option>
+              <option>Kansrijke lead</option><option>Multi-subgroepklant</option><option>Conversieklaar</option><option>Actieve Horeca United-klant</option>
+            </select>
+            <select id="admSort" onchange="AdminApp.renderLeads()">
+              <option value="score_desc">Sorteer: leadscore (hoog–laag)</option>
+              <option value="potential_desc">Sorteer: potentieel (hoog–laag)</option>
+              <option value="name_asc">Sorteer: bedrijfsnaam (A–Z)</option>
+            </select>
+          </div>
+          <table class="table">
+            <thead><tr>
+              <th>Onderneming</th><th>Type / plaats</th><th>Vest.</th><th>1e subgroep</th><th># subgroepen</th>
+              <th>Jaarkosten</th><th>Potentieel</th><th>Overstap</th><th>Leadscore</th><th>Fase</th><th>Volgende actie</th>
+            </tr></thead>
+            <tbody id="admLeadTable"></tbody>
+          </table>
+          <div id="admEmpty" class="empty-state" style="display:none">Geen ondernemingen gevonden voor deze filters.</div>
+        </div>
+
+        <!-- ADMIN TAB: machtigingen -->
+        <div id="admTab-machtigingen" style="display:none">
+          <div class="panel card">
+            <div class="page-head" style="margin-bottom:14px">
+              <div>
+                <h3 style="margin:0">Machtigingenoverzicht</h3>
+                <p style="margin:4px 0 0;font-size:13px">Alleen inzien — een medewerker kan geen machtiging namens een klant activeren.</p>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="AdminApp.loadAuthorizationsTab()">Verversen</button>
+            </div>
+            <div id="admAuthContent"><div class="empty-state">Laden…</div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRIVACY ============ -->
+<section id="screen-privacy" class="screen">
+  <div class="shell" style="max-width:740px;padding-top:48px;padding-bottom:64px">
+    <a onclick="history.back()" style="text-decoration:underline;cursor:pointer;color:var(--muted);font-size:14px">← Terug</a>
+    <h1 style="margin-top:20px;font-family:'Fraunces',serif">Privacyverklaring</h1>
+    <p style="color:var(--muted);font-size:14px">Upload- en analysesysteem Horeca United · Laatst bijgewerkt: [datum invullen]</p>
+
+    <h2 style="margin-top:32px">1. Wie is verantwoordelijk?</h2>
+    <p>Horeca United<br>
+    [Adres invullen]<br>
+    KvK-nummer: [invullen]<br>
+    E-mail: <a href="mailto:[privacy e-mailadres invullen]">[privacy e-mailadres invullen]</a></p>
+    <p>Horeca United is verantwoordelijk voor de verwerking van de persoonsgegevens die via dit systeem worden verzameld.</p>
+
+    <h2 style="margin-top:28px">2. Welke gegevens verzamelen wij?</h2>
+    <p>Wij verwerken de volgende gegevens wanneer u bestanden uploadt:</p>
+    <ul>
+      <li>Naam</li>
+      <li>E-mailadres</li>
+      <li>Geüploade bestanden (Excel en/of PDF)</li>
+      <li>Metadata van de bestanden (bestandsnaam, uploadtijdstip, bestandsgrootte)</li>
+      <li>Eventueel door u ingevulde cijfers (zoals volume bier, elektra in kWh, gas, frisdrank, vuilniskosten en verzekeringsinformatie)</li>
+    </ul>
+
+    <h2 style="margin-top:28px">3. Waarvoor gebruiken wij deze gegevens?</h2>
+    <p>Wij gebruiken de gegevens uitsluitend voor:</p>
+    <ul>
+      <li>Het centraal opslaan en ordenen van de aangeleverde bestanden</li>
+      <li>Analyse van volumes en kosten (bier, elektra, gas, frisdrank, vuilnis en verzekering)</li>
+      <li>Het maken van overzichten en rapportages ten behoeve van administratie, inkoop of bedrijfsvoering</li>
+      <li>Communicatie met u over de upload of de analyses</li>
+    </ul>
+
+    <h2 style="margin-top:28px">4. Rechtsgrondslag</h2>
+    <p>De verwerking gebeurt op basis van:</p>
+    <ul>
+      <li><strong>Overeenkomst</strong> — wanneer u gebruikmaakt van onze dienst, en/of</li>
+      <li><strong>Toestemming</strong> — door het uploaden van bestanden en het invullen van het formulier</li>
+    </ul>
+
+    <h2 style="margin-top:28px">5. Hoe lang bewaren wij de gegevens?</h2>
+    <p>Bestanden en bijbehorende gegevens bewaren wij zolang dat nodig is voor het doel, met een maximale bewaartermijn van <strong>7 jaar</strong> (aansluitend bij fiscale bewaarplichten), tenzij een langere termijn wettelijk verplicht is. U kunt verzoeken om eerdere verwijdering (zie artikel 8).</p>
+
+    <h2 style="margin-top:28px">6. Delen wij gegevens met derden?</h2>
+    <p>Wij delen gegevens alleen met partijen die noodzakelijk zijn voor de technische werking van het systeem, zoals onze hosting- en opslagprovider (Supabase). Met deze partijen sluiten wij een verwerkersovereenkomst. Wij verkopen of verhuren uw gegevens niet aan derden.</p>
+
+    <h2 style="margin-top:28px">7. Beveiliging</h2>
+    <p>Wij nemen passende technische en organisatorische maatregelen om uw gegevens te beschermen tegen verlies, misbruik en onbevoegde toegang (onder andere versleutelde verbindingen en toegangsbeperking).</p>
+
+    <h2 style="margin-top:28px">8. Uw rechten</h2>
+    <p>U heeft het recht om:</p>
+    <ul>
+      <li>Inzage te vragen in uw gegevens</li>
+      <li>Correctie of verwijdering te vragen</li>
+      <li>De verwerking te beperken</li>
+      <li>Bezwaar te maken tegen de verwerking</li>
+      <li>Uw toestemming in te trekken</li>
+    </ul>
+    <p>Stuur hiervoor een e-mail naar <a href="mailto:[privacy e-mailadres invullen]">[privacy e-mailadres invullen]</a>. Wij reageren binnen één maand.</p>
+    <p>U heeft ook het recht een klacht in te dienen bij de <a href="https://www.autoriteitpersoonsgegevens.nl" target="_blank" rel="noopener">Autoriteit Persoonsgegevens</a>.</p>
+
+    <h2 style="margin-top:28px">9. Contact</h2>
+    <p>Voor vragen over deze privacyverklaring of over de verwerking van uw gegevens:</p>
+    <p>Horeca United<br>
+    E-mail: <a href="mailto:[privacy e-mailadres invullen]">[privacy e-mailadres invullen]</a><br>
+    Telefoon: [telefoonnummer invullen]</p>
+
+    <div style="margin-top:40px;padding:20px;background:var(--bg);border:1px solid var(--line);border-radius:var(--r);font-size:14px;color:var(--muted)">
+      <strong style="color:var(--ink)">Toestemmingstekst voor het formulier</strong><br>
+      Door bestanden te uploaden en dit formulier te versturen, gaat u akkoord met de verwerking van uw naam, e-mailadres en de geüploade bestanden door Horeca United zoals beschreven in deze privacyverklaring.
+    </div>
+
+    <div style="margin-top:32px">
+      <button class="btn btn-ghost" onclick="Router.go('landing')">← Terug naar home</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MODAL: machtiging verlenen ============ -->
+<div class="modal-overlay" id="authGrantModal">
+  <div class="modal" style="max-width:560px">
+    <button class="modal-close" onclick="AuthModule.closeGrant()">&times;</button>
+    <div id="authGrantContent"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL: machtiging intrekken ============ -->
+<div class="modal-overlay" id="authRevokeModal">
+  <div class="modal" style="max-width:440px">
+    <button class="modal-close" onclick="AuthModule.closeRevoke()">&times;</button>
+    <div id="authRevokeContent"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL: login ============ -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal" style="max-width:420px">
+    <button class="modal-close" onclick="AuthUI.closeLogin()">&times;</button>
+    <h2 style="font-size:22px;margin-bottom:6px">Inloggen</h2>
+    <p style="margin-bottom:20px">Vul je e-mailadres in. Je ontvangt een inloglink — geen wachtwoord nodig.</p>
+    <div id="loginForm">
+      <div class="field">
+        <label for="loginEmail">E-mailadres</label>
+        <input type="email" id="loginEmail" placeholder="jij@voorbeeld.nl" autocomplete="email">
+        <div class="error-text" id="loginError" style="display:none"></div>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="AuthUI.sendMagicLink()" style="margin-top:4px">Stuur inloglink</button>
+    </div>
+    <div id="loginSent" style="display:none">
+      <div class="success-box">
+        <strong>Controleer je e-mail</strong><br>
+        We hebben een inloglink gestuurd naar <span id="loginSentEmail"></span>. Klik op de link om in te loggen.
+      </div>
+      <p style="margin-top:14px;font-size:13px">Geen e-mail ontvangen? Controleer je spam of <a onclick="AuthUI.resetLoginForm()" style="cursor:pointer;text-decoration:underline">probeer opnieuw</a>.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: business detail ============ -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <button class="modal-close" onclick="AdminApp.closeDetail()">&times;</button>
+    <div id="detailModalContent"></div>
+  </div>
+</div>
+
