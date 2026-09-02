@@ -259,6 +259,9 @@ table.table tr.clickable:hover{background:#faf9f4}
       <a onclick="Router.go('dashboard')">Klantdashboard</a>
       <a onclick="Router.go('admin')">Horeca United beheer</a>
       <span class="pill">Founding Pilot · demo</span>
+      <span id="topbarAuth" style="display:flex;align-items:center;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="AuthUI.openLogin()">Inloggen</button>
+      </span>
     </div>
   </div>
 </div>
@@ -628,10 +631,24 @@ table.table tr.clickable:hover{background:#faf9f4}
           <button class="btn btn-ghost btn-sm" onclick="DemoData.reset()">Demo-invoer resetten</button>
         </div>
 
+        <!-- Demo / onboarding banner — only shown when not logged in -->
+        <div id="dashDemoBanner" class="panel card" style="display:none;background:var(--warn-bg);border-color:#e9cf8c">
+          <div class="nba">
+            <div>
+              <strong style="color:var(--warn-ink)">Je bekijkt nu voorbeelddata</strong>
+              <p style="margin:4px 0 0;color:var(--warn-ink)">Log in met je e-mailadres om je eigen documenten en analysecijfers te zien, of upload direct een factuur.</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap">
+              <button class="btn btn-primary btn-sm" onclick="AuthUI.openLogin()">Inloggen</button>
+              <button class="btn btn-ghost btn-sm" onclick="Dashboard.showTab('documenten')">Document uploaden</button>
+            </div>
+          </div>
+        </div>
+
         <div class="stats-row">
           <div class="panel stat"><span>Potentiële besparing</span><strong class="pos" id="dashPotential">—</strong></div>
           <div class="panel stat"><span>Gerealiseerde besparing</span><strong id="dashRealized">€0</strong></div>
-          <div class="panel stat"><span>Subgroepen geanalyseerd</span><strong id="dashAnalyzed">—</strong></div>
+          <div class="panel stat"><span>Documenten</span><strong id="dashDocsCount">—</strong></div>
           <div class="panel stat"><span>Profiel voltooid</span><strong id="dashProfilePct">—</strong></div>
         </div>
 
@@ -693,7 +710,12 @@ table.table tr.clickable:hover{background:#faf9f4}
             <div id="docUploadStatus" style="margin-top:10px;font-size:13px"></div>
           </div>
           <div class="panel card">
-            <h3>Geüploade documenten</h3>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+              <h3 style="margin:0">Geüploade documenten</h3>
+              <span id="docsLoginNote" style="display:none;font-size:12.5px;color:var(--muted)">
+                <a onclick="AuthUI.openLogin()" style="cursor:pointer;text-decoration:underline;color:var(--brand2)">Log in</a> om je eigen documenten te zien
+              </span>
+            </div>
             <div id="dashDocuments"></div>
           </div>
         </div>
@@ -882,6 +904,30 @@ table.table tr.clickable:hover{background:#faf9f4}
   </div>
 </section>
 
+<!-- ============ MODAL: login ============ -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal" style="max-width:420px">
+    <button class="modal-close" onclick="AuthUI.closeLogin()">&times;</button>
+    <h2 style="font-size:22px;margin-bottom:6px">Inloggen</h2>
+    <p style="margin-bottom:20px">Vul je e-mailadres in. Je ontvangt een inloglink — geen wachtwoord nodig.</p>
+    <div id="loginForm">
+      <div class="field">
+        <label for="loginEmail">E-mailadres</label>
+        <input type="email" id="loginEmail" placeholder="jij@voorbeeld.nl" autocomplete="email">
+        <div class="error-text" id="loginError" style="display:none"></div>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="AuthUI.sendMagicLink()" style="margin-top:4px">Stuur inloglink</button>
+    </div>
+    <div id="loginSent" style="display:none">
+      <div class="success-box">
+        <strong>Controleer je e-mail</strong><br>
+        We hebben een inloglink gestuurd naar <span id="loginSentEmail"></span>. Klik op de link om in te loggen.
+      </div>
+      <p style="margin-top:14px;font-size:13px">Geen e-mail ontvangen? Controleer je spam of <a onclick="AuthUI.resetLoginForm()" style="cursor:pointer;text-decoration:underline">probeer opnieuw</a>.</p>
+    </div>
+  </div>
+</div>
+
 <!-- ============ MODAL: business detail ============ -->
 <div class="modal-overlay" id="detailModal">
   <div class="modal">
@@ -897,6 +943,94 @@ table.table tr.clickable:hover{background:#faf9f4}
 const SUPABASE_URL = 'https://yyvzqnjumnpotawnrvfw.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_QDvjBPDGIgrQNcSzEw2FZg_Yj6hfIgY';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* =========================================================
+   Auth state
+   ========================================================= */
+let CURRENT_USER = null;
+
+sb.auth.onAuthStateChange((_event, session) => {
+  CURRENT_USER = session?.user ?? null;
+  AuthUI.updateTopbar();
+  // Re-render dashboard documents if it's visible
+  const dashVisible = document.getElementById('screen-dashboard').classList.contains('active');
+  if (dashVisible) Dashboard.renderDocuments();
+});
+
+// Restore session on page load
+sb.auth.getSession().then(({ data: { session } }) => {
+  CURRENT_USER = session?.user ?? null;
+  AuthUI.updateTopbar();
+});
+
+/* =========================================================
+   AuthUI
+   ========================================================= */
+const AuthUI = {
+  openLogin() {
+    this.resetLoginForm();
+    document.getElementById('loginModal').classList.add('active');
+  },
+  closeLogin() {
+    document.getElementById('loginModal').classList.remove('active');
+  },
+  resetLoginForm() {
+    document.getElementById('loginForm').style.display = 'block';
+    document.getElementById('loginSent').style.display = 'none';
+    document.getElementById('loginError').style.display = 'none';
+    document.getElementById('loginEmail').value = '';
+  },
+  async sendMagicLink() {
+    const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+    const errEl = document.getElementById('loginError');
+    if (!email || !email.includes('@')) {
+      errEl.textContent = 'Vul een geldig e-mailadres in.';
+      errEl.style.display = 'block';
+      return;
+    }
+    errEl.style.display = 'none';
+    const btn = document.querySelector('#loginForm .btn-primary');
+    btn.disabled = true;
+    btn.textContent = 'Versturen…';
+    const { error } = await sb.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.href }
+    });
+    btn.disabled = false;
+    btn.textContent = 'Stuur inloglink';
+    if (error) {
+      errEl.textContent = 'Er ging iets mis: ' + error.message;
+      errEl.style.display = 'block';
+      return;
+    }
+    document.getElementById('loginSentEmail').textContent = email;
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('loginSent').style.display = 'block';
+  },
+  async logout() {
+    await sb.auth.signOut();
+    CURRENT_USER = null;
+    this.updateTopbar();
+    const dashVisible = document.getElementById('screen-dashboard').classList.contains('active');
+    if (dashVisible) Dashboard.renderDocuments();
+  },
+  updateTopbar() {
+    const el = document.getElementById('topbarAuth');
+    if (CURRENT_USER) {
+      const email = CURRENT_USER.email;
+      el.innerHTML = `
+        <span style="font-size:13px;color:var(--muted)">${email}</span>
+        <button class="btn btn-ghost btn-sm" onclick="AuthUI.logout()">Uitloggen</button>`;
+    } else {
+      el.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="AuthUI.openLogin()">Inloggen</button>`;
+    }
+  }
+};
+
+// Close login modal on backdrop click
+document.getElementById('loginModal').addEventListener('click', e => {
+  if (e.target.id === 'loginModal') AuthUI.closeLogin();
+});
 
 function parseNum(id) {
   const el = document.getElementById(id);
@@ -1501,24 +1635,31 @@ function buildSubgroupRows(){
 const Dashboard = {
   open(){
     if(!STATE.completed){
-      // seed a reasonable default so the dashboard is never empty
       STATE.account.companyName = STATE.account.companyName || "Voorbeeld Horecazaak";
       Engine.computeResult();
       STATE.completed = true;
       saveState();
+    }
+    // Pre-fill upload email if logged in
+    if (CURRENT_USER) {
+      const emailEl = document.getElementById('docUploadEmail');
+      if (emailEl && !emailEl.value) emailEl.value = CURRENT_USER.email;
     }
     this.render();
     Router.go("dashboard");
   },
   render(){
     const rows = buildSubgroupRows();
-    document.getElementById("dashCompanyName").textContent = STATE.account.companyName || "Voorbeeld Horecazaak";
+    document.getElementById("dashCompanyName").textContent =
+      CURRENT_USER ? (CURRENT_USER.email) : (STATE.account.companyName || "Voorbeeld Horecazaak");
     document.getElementById("dashPotential").textContent = STATE.result ? `${euro(STATE.result.low)} – ${euro(STATE.result.high)}` : "—";
-    document.getElementById("dashAnalyzed").textContent = rows.filter(r=>r.status!=="Nog niet ingevuld").length + " / " + rows.length;
     const pct = STATE.result ? STATE.result.profilePct : Engine.profileCompletion();
     document.getElementById("dashProfilePct").textContent = pct + "%";
     document.getElementById("dashProfilePct2").textContent = pct + "% voltooid";
     document.getElementById("dashProfileBar").style.width = pct + "%";
+
+    // Demo banner
+    document.getElementById("dashDemoBanner").style.display = CURRENT_USER ? "none" : "block";
 
     const shortBody = rows.slice(0,5).map(r=>`
       <tr><td><strong>${r.name}</strong></td><td><span class="badge ${r.badge}">${r.status}</span></td>
@@ -1535,14 +1676,6 @@ const Dashboard = {
     document.getElementById("dashNextAction").textContent = next
       ? `Upload je ${subgroupName(next).toLowerCase()}-document om je volgende analyse te starten. Je profiel is voor ${pct}% voltooid.`
       : `Open extra subgroepen om je volledige benchmark te ontgrendelen. Je profiel is voor ${pct}% voltooid.`;
-
-    // documents
-    const docs = [];
-    const uploadedNames = STATE.uploadFileNames && STATE.uploadFileNames.length ? STATE.uploadFileNames : (STATE.uploadFileName ? [STATE.uploadFileName] : []);
-    uploadedNames.forEach(n => docs.push({name: n, subgroup: subgroupName(STATE.primary.subgroupId), status:"Ontvangen"}));
-    document.getElementById("dashDocuments").innerHTML = docs.length
-      ? `<table class="table"><thead><tr><th>Bestand</th><th>Subgroep</th><th>Status</th></tr></thead><tbody>${docs.map(d=>`<tr><td>${d.name}</td><td>${d.subgroup}</td><td><span class="badge b-green">${d.status}</span></td></tr>`).join("")}</tbody></table>`
-      : `<div class="empty-state">Nog geen documenten geüpload.</div>`;
 
     // contracts
     const contractRows = rows.filter(r=>r.contractEnd && r.contractEnd!=="Onbekend");
@@ -1564,18 +1697,90 @@ const Dashboard = {
     document.getElementById("dashProfileKv").innerHTML = `
       <div><span>Bedrijfsnaam</span>${STATE.account.companyName||"—"}</div>
       <div><span>Contactpersoon</span>${STATE.account.contactPerson||"—"}</div>
-      <div><span>E-mail</span>${STATE.account.email||"—"}</div>
+      <div><span>E-mail</span>${CURRENT_USER ? CURRENT_USER.email : (STATE.account.email||"—")}</div>
       <div><span>Telefoon</span>${STATE.account.phone||"—"}</div>
       <div><span>Type horecazaak</span>${p.businessType||"—"}</div>
       <div><span>Vestigingsplaats</span>${p.city||"—"}</div>
       <div><span>Jaaromzet</span>${p.turnover||"—"}</div>
       <div><span>Aantal vestigingen</span>${p.locations||"—"}</div>
     `;
+
+    // documents (async, updates independently)
+    this.renderDocuments();
+  },
+
+  async renderDocuments(){
+    const el = document.getElementById("dashDocuments");
+    const loginNote = document.getElementById("docsLoginNote");
+    const docsCountEl = document.getElementById("dashDocsCount");
+
+    if (CURRENT_USER) {
+      loginNote.style.display = "none";
+      el.innerHTML = `<div class="empty-state" style="padding:20px">Documenten laden…</div>`;
+      const { data: uploads, error } = await sb.from('uploads')
+        .select('id, file_name, subgroup, uploaded_at, file_path')
+        .eq('email', CURRENT_USER.email)
+        .order('uploaded_at', { ascending: false });
+      if (error) {
+        el.innerHTML = `<div class="empty-state" style="color:var(--danger-ink)">Fout bij laden: ${error.message}</div>`;
+        return;
+      }
+      if (docsCountEl) docsCountEl.textContent = uploads.length;
+      if (!uploads.length) {
+        el.innerHTML = `<div class="empty-state">Nog geen documenten geüpload. <a onclick="Dashboard.showTab('documenten')" style="cursor:pointer;text-decoration:underline;color:var(--brand2)">Upload je eerste document</a>.</div>`;
+        return;
+      }
+      el.innerHTML = `<table class="table">
+        <thead><tr><th>Bestand</th><th>Subgroep</th><th>Geüpload op</th><th></th></tr></thead>
+        <tbody>${uploads.map(u => {
+          const sg = u.subgroup ? subgroupName(u.subgroup) : '—';
+          const date = new Date(u.uploaded_at).toLocaleDateString('nl-NL');
+          return `<tr>
+            <td><span class="file-name">${u.file_name}</span></td>
+            <td>${sg}</td>
+            <td style="color:var(--muted);font-size:12.5px">${date}</td>
+            <td><button class="btn btn-ghost btn-sm" style="color:var(--danger-ink);border-color:var(--danger-ink)" onclick="Dashboard.deleteUpload('${u.id}','${u.file_path.replace(/'/g,"\\'")}')">Verwijderen</button></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+    } else {
+      // Not logged in: show demo names from localStorage + login nudge
+      loginNote.style.display = "inline";
+      const uploadedNames = STATE.uploadFileNames?.length ? STATE.uploadFileNames : (STATE.uploadFileName ? [STATE.uploadFileName] : []);
+      if (docsCountEl) docsCountEl.textContent = uploadedNames.length || "—";
+      if (!uploadedNames.length) {
+        el.innerHTML = `<div class="empty-state">Nog geen documenten geüpload.</div>`;
+        return;
+      }
+      el.innerHTML = `<table class="table">
+        <thead><tr><th>Bestand</th><th>Subgroep</th><th>Status</th></tr></thead>
+        <tbody>${uploadedNames.map(n => `<tr>
+          <td>${n}</td>
+          <td>${subgroupName(STATE.primary.subgroupId)}</td>
+          <td><span class="badge b-green">Ontvangen</span></td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+  },
+
+  async deleteUpload(uploadId, filePath){
+    if (!CURRENT_USER) return;
+    if (!confirm('Weet je zeker dat je dit document wilt verwijderen?')) return;
+    // Remove from storage
+    await sb.storage.from('client-uploads').remove([filePath]);
+    // Remove from database
+    const { error } = await sb.from('uploads').delete().eq('id', uploadId);
+    if (error) { alert('Verwijderen mislukt: ' + error.message); return; }
+    this.renderDocuments();
   },
   showTab(tab){
     document.querySelectorAll(".dash-tab").forEach(el=>el.style.display="none");
     document.getElementById("dashTab-"+tab).style.display="block";
     document.querySelectorAll(".side-nav a[data-dash]").forEach(a=>a.classList.toggle("active", a.dataset.dash===tab));
+    if (tab === 'documenten' && CURRENT_USER) {
+      const emailEl = document.getElementById('docUploadEmail');
+      if (emailEl && !emailEl.value) emailEl.value = CURRENT_USER.email;
+    }
   },
   _stagedFiles: [],
   _subgroupOptions(){
@@ -1641,6 +1846,7 @@ const Dashboard = {
       this.clearStaging();
       saveState();
       this.render();
+      this.renderDocuments();
     } catch(err) {
       statusEl.style.color = "var(--danger-ink)";
       statusEl.textContent = "Upload mislukt: " + err.message;
