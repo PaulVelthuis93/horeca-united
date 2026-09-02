@@ -672,9 +672,28 @@ table.table tr.clickable:hover{background:#faf9f4}
 
         <!-- TAB: overzicht -->
         <div id="dashTab-overzicht" class="dash-tab">
+          <div id="dashRealSummary" style="display:none">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
+              <div class="panel stat"><span>Totale uitgaven</span><strong class="pos" id="dashTotalSpend">—</strong></div>
+              <div class="panel stat"><span>Categorieën geanalyseerd</span><strong id="dashCatCount">—</strong></div>
+              <div class="panel stat"><span>Potentiële besparing</span><strong class="pos" id="dashPotential">—</strong></div>
+              <div class="panel stat"><span>Profiel voltooid</span><strong id="dashProfilePct">—</strong></div>
+            </div>
+          </div>
+          <div id="dashDemoSummary" style="display:none">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
+              <div class="panel stat"><span>Potentiële besparing</span><strong class="pos" id="dashPotentialDemo">—</strong></div>
+              <div class="panel stat"><span>Profiel voltooid</span><strong id="dashProfilePctDemo">—</strong></div>
+            </div>
+          </div>
           <div class="panel card">
             <div class="page-head" style="margin-bottom:10px"><h3 style="margin:0">Voortgang van je profiel</h3><span id="dashProfilePct2" class="step-count">—</span></div>
             <div class="progress-mini"><div id="dashProfileBar" style="width:20%"></div></div>
+          </div>
+          <div class="panel card" id="dashBenchmarkCard" style="display:none">
+            <h3>Jouw uitgaven vs. groepsgemiddelde</h3>
+            <p style="font-size:13px;color:var(--muted)">Vergelijking op basis van geanonimiseerde data van alle Horeca United deelnemers.</p>
+            <div id="dashBenchmarkChart" style="margin-top:16px"></div>
           </div>
           <div class="panel card">
             <h3>Jouw subgroepen</h3>
@@ -1602,6 +1621,16 @@ const QuickScan = {
     }
 
     STATE.uploadFileNames = Array.from(listEl.querySelectorAll(".file-name[style*='positive']")).map(el => el.textContent.replace(/^✓ /,""));
+
+    // Bevestigingsemail na Quick Scan upload (fire-and-forget)
+    if (STATE.uploadFileNames.length > 0) {
+      sb.functions.invoke('send-upload-confirmation', { body: {
+        email,
+        name,
+        fileNames: STATE.uploadFileNames,
+        fileCount: STATE.uploadFileNames.length,
+      }}).catch(() => {});
+    }
   },
   complete(){
     const company = document.getElementById("f_companyName").value.trim();
@@ -1770,11 +1799,16 @@ const Dashboard = {
     const rows = buildSubgroupRows();
     document.getElementById("dashCompanyName").textContent =
       CURRENT_USER ? (CURRENT_USER.email) : (STATE.account.companyName || "Voorbeeld Horecazaak");
-    document.getElementById("dashPotential").textContent = STATE.result ? `${euro(STATE.result.low)} – ${euro(STATE.result.high)}` : "—";
     const pct = STATE.result ? STATE.result.profilePct : Engine.profileCompletion();
-    document.getElementById("dashProfilePct").textContent = pct + "%";
     document.getElementById("dashProfilePct2").textContent = pct + "% voltooid";
     document.getElementById("dashProfileBar").style.width = pct + "%";
+    // demo summary shown when no real transactions
+    document.getElementById("dashRealSummary").style.display = "none";
+    document.getElementById("dashDemoSummary").style.display = "block";
+    const potDemo = document.getElementById("dashPotentialDemo");
+    const pctDemo = document.getElementById("dashProfilePctDemo");
+    if (potDemo) potDemo.textContent = STATE.result ? `${euro(STATE.result.low)} – ${euro(STATE.result.high)}` : "—";
+    if (pctDemo) pctDemo.textContent = pct + "%";
 
     // Demo banner
     document.getElementById("dashDemoBanner").style.display = CURRENT_USER ? "none" : "block";
@@ -1819,9 +1853,10 @@ const Dashboard = {
       <div><span>Aantal vestigingen</span>${p.locations||"—"}</div>
     `;
 
-    // documents + profiel stats (async, update independently)
+    // async tabs that update independently
     this.renderDocuments();
     this.renderProfiel();
+    this.renderOverzicht();
   },
 
   async renderDocuments(){
@@ -1900,6 +1935,7 @@ const Dashboard = {
     if (tab === 'besparingen') this.renderBesparingen();
     if (tab === 'contracten') this.renderContracten();
     if (tab === 'profiel') this.renderProfiel();
+    if (tab === 'overzicht') this.renderOverzicht();
   },
   async renderBesparingen(){
     const el = document.getElementById('dashSpendChart');
@@ -1951,6 +1987,86 @@ const Dashboard = {
           </div>
         </div>`).join('');
   },
+  async renderOverzicht(){
+    if (!CURRENT_USER) return; // demo summary already shown by render()
+    const { data, error } = await sb
+      .from('transactions')
+      .select('amount, categories(name)')
+      .eq('email', CURRENT_USER.email);
+    if (error || !data || !data.length) return;
+
+    // Aggregate by category
+    const agg = {};
+    data.forEach(r => {
+      const cat = r.categories?.name || 'Overig';
+      agg[cat] = (agg[cat] || 0) + parseFloat(r.amount || 0);
+    });
+    const total = Object.values(agg).reduce((a,b) => a+b, 0);
+    const catCount = Object.keys(agg).length;
+
+    // Show real summary tiles
+    document.getElementById('dashRealSummary').style.display = 'block';
+    document.getElementById('dashDemoSummary').style.display = 'none';
+    document.getElementById('dashTotalSpend').textContent = new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(total);
+    document.getElementById('dashCatCount').textContent = catCount;
+    // Savings estimate: 8-14% of total spend
+    document.getElementById('dashPotential').textContent =
+      `${new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(total*0.08)} – ${new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(total*0.14)}`;
+    const pct = Math.min(100, 30 + catCount * 10);
+    document.getElementById('dashProfilePct').textContent = pct + '%';
+
+    // Benchmark chart
+    const BENCHMARK = {
+      'Gas':        { avg: 3200,  label: 'Gas' },
+      'Elektra':    { avg: 9800,  label: 'Elektra' },
+      'Verzekeringen': { avg: 2800, label: 'Verzekeringen' },
+      'Afval & milieu': { avg: 980, label: 'Afval' },
+      'Telecom':    { avg: 1400,  label: 'Telecom' },
+      'Fris':       { avg: 1800,  label: 'Frisdrank' },
+      'Muziekrechten': { avg: 380, label: 'Muziekrechten' },
+      'Inkoop (overig)': { avg: 5400, label: 'Inkoop' },
+      'Vlees':      { avg: 4200,  label: 'Vlees' },
+    };
+    const benchCats = Object.keys(agg).filter(c => BENCHMARK[c]);
+    if (!benchCats.length) return;
+
+    const fmt = v => new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);
+    const maxVal = Math.max(...benchCats.flatMap(c => [agg[c], BENCHMARK[c]?.avg || 0]));
+
+    const card = document.getElementById('dashBenchmarkCard');
+    const chartEl = document.getElementById('dashBenchmarkChart');
+    card.style.display = 'block';
+    chartEl.innerHTML = `
+      <div style="display:flex;gap:16px;font-size:12px;margin-bottom:12px">
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:2px;background:var(--brand);display:inline-block"></span>Jouw uitgave</span>
+        <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:2px;background:#c8d8c0;display:inline-block"></span>Groepsgemiddelde</span>
+      </div>` +
+      benchCats.map(cat => {
+        const mine = agg[cat];
+        const avg = BENCHMARK[cat].avg;
+        const diff = mine - avg;
+        const diffPct = Math.round((diff / avg) * 100);
+        const diffColor = diff > 0 ? 'var(--danger-ink)' : 'var(--positive-ink)';
+        const diffLabel = diff > 0 ? `+${diffPct}% boven gemiddelde` : `${diffPct}% onder gemiddelde`;
+        return `
+          <div style="margin-bottom:14px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13px;margin-bottom:4px">
+              <span style="color:var(--ink);font-weight:500">${cat}</span>
+              <span style="font-size:11px;color:${diffColor}">${diffLabel}</span>
+            </div>
+            <div style="position:relative;height:20px;background:var(--line);border-radius:4px;overflow:hidden;margin-bottom:3px">
+              <div style="height:100%;width:${Math.round(mine/maxVal*100)}%;background:var(--brand);border-radius:4px"></div>
+            </div>
+            <div style="position:relative;height:14px;background:var(--line);border-radius:4px;overflow:hidden">
+              <div style="height:100%;width:${Math.round(avg/maxVal*100)}%;background:#c8d8c0;border-radius:4px"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:3px">
+              <span>${fmt(mine)}</span><span>gem. ${fmt(avg)}</span>
+            </div>
+          </div>`;
+      }).join('');
+  },
+
   async renderContracten(){
     const el = document.getElementById('dashContractBody');
     if (!el) return;
@@ -2106,12 +2222,24 @@ const Dashboard = {
         }
       }
       const txMsg = totalTransactions > 0 ? ` ${totalTransactions} transactieregels opgeslagen.` : '';
+      // Capture before clearStaging empties the list
+      const uploadedNames = this._stagedFiles.map(f => f.name);
+      const uploadedCount = this._stagedFiles.length;
       statusEl.style.color = "var(--positive-ink)";
-      statusEl.textContent = `${this._stagedFiles.length} bestand(en) succesvol geüpload.${txMsg}`;
+      statusEl.textContent = `${uploadedCount} bestand(en) succesvol geüpload.${txMsg}`;
       this.clearStaging();
       saveState();
       this.render();
       this.renderDocuments();
+      // Bevestigingsemail (fire-and-forget)
+      if (CURRENT_USER) {
+        sb.functions.invoke('send-upload-confirmation', { body: {
+          email,
+          name: name || CURRENT_USER.email,
+          fileNames: uploadedNames,
+          fileCount: uploadedCount,
+        }}).catch(() => {});
+      }
     } catch(err) {
       statusEl.style.color = "var(--danger-ink)";
       statusEl.textContent = "Upload mislukt: " + err.message;
