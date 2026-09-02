@@ -1041,7 +1041,7 @@ function parseNum(id) {
 }
 
 async function uploadToSupabase(file, name, email, subgroup) {
-  const safeEmail = email.replace(/[^a-z0-9@._-]/gi, '_');
+  const safeEmail = email.toLowerCase().replace(/[^a-z0-9._-]/g, '_');
   const filePath = `${safeEmail}/${Date.now()}_${file.name}`;
 
   const { error: uploadError } = await sb.storage
