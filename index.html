@@ -1080,13 +1080,18 @@ let CURRENT_USER = null;
 sb.auth.onAuthStateChange((event, session) => {
   CURRENT_USER = session?.user ?? null;
   AuthUI.updateTopbar();
-  // After magic link login, open dashboard automatically
   if (event === 'SIGNED_IN') {
     AuthUI.closeLogin();
     Dashboard.open();
   } else {
     const dashVisible = document.getElementById('screen-dashboard').classList.contains('active');
-    if (dashVisible) Dashboard.renderDocuments();
+    if (dashVisible) {
+      Dashboard.renderDocuments();
+      Dashboard.renderOverzicht();
+      Dashboard.renderProfiel();
+      Dashboard.renderBesparingen();
+      Dashboard.renderContracten();
+    }
   }
 });
 
