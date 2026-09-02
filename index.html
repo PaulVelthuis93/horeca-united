@@ -741,8 +741,9 @@ table.table tr.clickable:hover{background:#faf9f4}
         <!-- TAB: contracten -->
         <div id="dashTab-contracten" class="dash-tab" style="display:none">
           <div class="panel card">
-            <h3>Aankomende contractmomenten</h3>
-            <table class="table"><thead><tr><th>Subgroep</th><th>Leverancier</th><th>Einddatum</th><th>Status</th></tr></thead><tbody id="dashContractTable"></tbody></table>
+            <h3>Contracten &amp; abonnementen</h3>
+            <p style="font-size:13px;color:var(--muted)">Overzicht van gevonden contracten op basis van geüploade documenten.</p>
+            <div id="dashContractBody"><div class="empty-state">Laden…</div></div>
           </div>
         </div>
 
@@ -783,8 +784,18 @@ table.table tr.clickable:hover{background:#faf9f4}
         <!-- TAB: profiel -->
         <div id="dashTab-profiel" class="dash-tab" style="display:none">
           <div class="panel card">
-            <h3>Bedrijfsprofiel</h3>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+              <div>
+                <h3 style="margin:0">Bedrijfsprofiel</h3>
+                <p style="margin:4px 0 0;font-size:13px;color:var(--muted)">Gegevens die zijn ingevuld tijdens de Quick Scan.</p>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="Router.go('scan')">Profiel aanpassen</button>
+            </div>
             <div class="kv" id="dashProfileKv"></div>
+          </div>
+          <div class="panel card" id="dashProfileStats" style="display:none">
+            <h3>Jouw cijfers op basis van uploads</h3>
+            <div class="kv" id="dashProfileStatsKv"></div>
           </div>
         </div>
 
@@ -1784,11 +1795,7 @@ const Dashboard = {
       ? `Upload je ${subgroupName(next).toLowerCase()}-document om je volgende analyse te starten. Je profiel is voor ${pct}% voltooid.`
       : `Open extra subgroepen om je volledige benchmark te ontgrendelen. Je profiel is voor ${pct}% voltooid.`;
 
-    // contracts
-    const contractRows = rows.filter(r=>r.contractEnd && r.contractEnd!=="Onbekend");
-    document.getElementById("dashContractTable").innerHTML = contractRows.length
-      ? contractRows.map(r=>`<tr><td>${r.name}</td><td>${r.supplier}</td><td>${r.contractEnd}</td><td><span class="badge b-yellow">Aandachtspunt</span></td></tr>`).join("")
-      : `<tr><td colspan="4" class="empty-state">Nog geen bekende contracteinddatums.</td></tr>`;
+    // contracts tab renders lazily via showTab('contracten')
 
     // savings
     document.getElementById("dashSavingsTable").innerHTML = rows.map(r=>{
@@ -1812,8 +1819,9 @@ const Dashboard = {
       <div><span>Aantal vestigingen</span>${p.locations||"—"}</div>
     `;
 
-    // documents (async, updates independently)
+    // documents + profiel stats (async, update independently)
     this.renderDocuments();
+    this.renderProfiel();
   },
 
   async renderDocuments(){
@@ -1890,6 +1898,8 @@ const Dashboard = {
     }
     if (tab === 'machtigingen') AuthModule.loadAndRender();
     if (tab === 'besparingen') this.renderBesparingen();
+    if (tab === 'contracten') this.renderContracten();
+    if (tab === 'profiel') this.renderProfiel();
   },
   async renderBesparingen(){
     const el = document.getElementById('dashSpendChart');
@@ -1941,6 +1951,102 @@ const Dashboard = {
           </div>
         </div>`).join('');
   },
+  async renderContracten(){
+    const el = document.getElementById('dashContractBody');
+    if (!el) return;
+
+    const DEMO_CONTRACTS = [
+      {category:'Verzekeringen', supplier:'De Goudse', period_end:'2027-07-01', amount:3240, notes:'Horeca all-risk polis'},
+      {category:'Gas', supplier:'Hezelaer Energy', period_end:'2027-01-01', amount:2394, notes:'Jaarafrekening gas'},
+      {category:'Elektra', supplier:'Hezelaer Energy', period_end:'2027-01-01', amount:11233, notes:'Jaarafrekening elektriciteit'},
+      {category:'Telecom', supplier:'Odido', period_end:'2027-01-01', amount:960, notes:'Internet & telefonie'},
+      {category:'Afval & milieu', supplier:'Milieu Service NL', period_end:'2026-12-31', amount:604, notes:'Afvalcontract kwartaal'},
+    ];
+
+    const fmt = v => new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);
+    const fmtDate = s => s ? new Date(s).toLocaleDateString('nl-NL',{year:'numeric',month:'long',day:'numeric'}) : '—';
+    const urgencyBadge = s => {
+      if (!s) return '<span class="badge b-grey">Onbekend</span>';
+      const days = (new Date(s) - new Date()) / 86400000;
+      if (days < 60) return '<span class="badge b-red">Binnenkort</span>';
+      if (days < 180) return '<span class="badge b-yellow">Let op</span>';
+      return '<span class="badge b-green">Lopend</span>';
+    };
+
+    let rows = [];
+    let isDemo = false;
+
+    if (CURRENT_USER) {
+      const { data, error } = await sb
+        .from('transactions')
+        .select('amount, period_end, notes, source, categories(name), suppliers(name)')
+        .eq('email', CURRENT_USER.email)
+        .not('period_end', 'is', null)
+        .order('period_end', { ascending: true });
+      if (!error && data && data.length) {
+        rows = data.map(r => ({
+          category: r.categories?.name || 'Overig',
+          supplier: r.suppliers?.name || '—',
+          period_end: r.period_end,
+          amount: parseFloat(r.amount || 0),
+          notes: r.notes || '',
+        }));
+      } else {
+        isDemo = true; rows = DEMO_CONTRACTS;
+      }
+    } else {
+      isDemo = true; rows = DEMO_CONTRACTS;
+    }
+
+    el.innerHTML = (isDemo ? `<p style="font-size:12px;color:var(--muted);font-style:italic;margin:0 0 12px">Voorbeelddata — log in en upload contracten om jouw eigen overzicht te zien.</p>` : '') +
+      `<table class="table"><thead><tr><th>Categorie</th><th>Leverancier</th><th>Einddatum</th><th>Jaarbedrag</th><th>Status</th></tr></thead><tbody>` +
+      rows.map(r => `<tr>
+        <td><strong>${r.category}</strong></td>
+        <td>${r.supplier}</td>
+        <td style="white-space:nowrap">${fmtDate(r.period_end)}</td>
+        <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px">${fmt(r.amount)}</td>
+        <td>${urgencyBadge(r.period_end)}</td>
+      </tr>`).join('') +
+      `</tbody></table>`;
+  },
+
+  async renderProfiel(){
+    // Already rendered by render(), but also fetch extracted stats if logged in
+    const statsCard = document.getElementById('dashProfileStats');
+    const statsKv = document.getElementById('dashProfileStatsKv');
+    if (!statsCard || !statsKv || !CURRENT_USER) return;
+
+    const { data, error } = await sb
+      .from('extracted_data')
+      .select('volume_bier, volume_elektra_kwh, volume_gas_m3, volume_frisdrank, vuilnis_kosten, verzekering_dekking')
+      .eq('email', CURRENT_USER.email);
+
+    if (error || !data || !data.length) { statsCard.style.display = 'none'; return; }
+
+    const sum = (key) => data.reduce((acc, r) => acc + (parseFloat(r[key]) || 0), 0);
+    const fmt = v => new Intl.NumberFormat('nl-NL',{maximumFractionDigits:0}).format(v);
+
+    const gas = sum('volume_gas_m3');
+    const kwh = sum('volume_elektra_kwh');
+    const bier = sum('volume_bier');
+    const fris = sum('volume_frisdrank');
+    const afval = sum('vuilnis_kosten');
+    const dekking = data.map(r => r.verzekering_dekking).filter(Boolean).join('; ') || null;
+
+    const items = [
+      gas   ? `<div><span>Gasverbruik (m³)</span>${fmt(gas)} m³</div>` : '',
+      kwh   ? `<div><span>Elektraverbruik (kWh)</span>${fmt(kwh)} kWh</div>` : '',
+      bier  ? `<div><span>Biervolume (liter)</span>${fmt(bier)} L</div>` : '',
+      fris  ? `<div><span>Frisdrankvolume (liter)</span>${fmt(fris)} L</div>` : '',
+      afval ? `<div><span>Afvalkosten</span>€${fmt(afval)}</div>` : '',
+      dekking ? `<div><span>Verzekeringsdekking</span>${dekking}</div>` : '',
+    ].filter(Boolean);
+
+    if (!items.length) { statsCard.style.display = 'none'; return; }
+    statsKv.innerHTML = items.join('');
+    statsCard.style.display = 'block';
+  },
+
   _stagedFiles: [],
   _subgroupOptions(){
     return `<option value="">— Geen / onbekend —</option>` +
