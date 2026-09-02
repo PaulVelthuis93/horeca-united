@@ -927,7 +927,6 @@ const Dashboard = {
     const el = document.getElementById('dashSpendChart');
     if (!el) return;
 
-    // Demo data shown when not logged in
     const DEMO_SPEND = [
       {category:'Inkoop (overig)', total: 4820},
       {category:'Vlees', total: 3150},
@@ -937,20 +936,32 @@ const Dashboard = {
     ];
 
     let rows = [];
+    let unitRows = []; // rows with quantity+unit for price-per-unit card
     if (CURRENT_USER) {
       const { data, error } = await sb
         .from('transactions')
-        .select('amount, categories(name)')
+        .select('amount, quantity, unit, categories(name)')
         .eq('email', CURRENT_USER.email);
       if (!error && data && data.length) {
-        const agg = {};
+        const agg = {}, unitAgg = {};
         data.forEach(r => {
           const cat = r.categories?.name || 'Overig';
           agg[cat] = (agg[cat] || 0) + parseFloat(r.amount || 0);
+          if (r.quantity && r.unit) {
+            if (!unitAgg[cat]) unitAgg[cat] = { totalAmount: 0, totalQty: 0, unit: r.unit };
+            unitAgg[cat].totalAmount += parseFloat(r.amount || 0);
+            unitAgg[cat].totalQty   += parseFloat(r.quantity || 0);
+          }
         });
         rows = Object.entries(agg)
           .map(([category, total]) => ({category, total}))
           .sort((a,b) => b.total - a.total);
+        unitRows = Object.entries(unitAgg).map(([category, v]) => ({
+          category,
+          unitPrice: v.totalQty > 0 ? v.totalAmount / v.totalQty : null,
+          unit: v.unit,
+          totalQty: v.totalQty,
+        }));
       }
     }
 
@@ -958,7 +969,8 @@ const Dashboard = {
     if (isDemo) rows = DEMO_SPEND;
 
     const max = rows[0]?.total || 1;
-    const fmt = v => new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);
+    const fmt  = v => new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);
+    const fmtU = v => new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',minimumFractionDigits:2,maximumFractionDigits:2}).format(v);
     const COLORS = ['#163829','#2f6b4c','#4a9b71','#7ec8a0','#b2dfc3'];
 
     el.innerHTML = (isDemo ? `<p style="font-size:12px;color:var(--muted);margin:0 0 12px;font-style:italic">Voorbeelddata — log in en upload facturen om jouw eigen uitgaven te zien.</p>` : '') +
@@ -972,6 +984,42 @@ const Dashboard = {
             <div style="height:100%;width:${Math.round(r.total/max*100)}%;background:${COLORS[i%COLORS.length]};border-radius:4px;transition:width .4s ease"></div>
           </div>
         </div>`).join('');
+
+    // Unit price card
+    const upCard = document.getElementById('dashUnitPriceCard');
+    const upList = document.getElementById('dashUnitPriceList');
+    if (!upCard || !upList || !unitRows.length) { if (upCard) upCard.style.display = 'none'; return; }
+
+    const { data: benchRows } = await sb.from('benchmark_data')
+      .select('category_name, avg_unit_price, unit, unit_label')
+      .not('avg_unit_price', 'is', null);
+    const benchByCategory = {};
+    (benchRows || []).forEach(r => { benchByCategory[r.category_name] = r; });
+
+    const upItems = unitRows.filter(r => r.unitPrice !== null);
+    if (!upItems.length) { upCard.style.display = 'none'; return; }
+
+    upCard.style.display = 'block';
+    upList.innerHTML = `<table class="table">
+      <thead><tr><th>Categorie</th><th>Jouw prijs</th><th>Groepsgemiddelde</th><th>Verschil</th><th>Volume</th></tr></thead>
+      <tbody>${upItems.map(r => {
+        const bench = benchByCategory[r.category];
+        const avgPrice = bench?.avg_unit_price;
+        const unitLabel = bench?.unit_label || `per ${r.unit}`;
+        const diff = avgPrice ? ((r.unitPrice - avgPrice) / avgPrice * 100) : null;
+        const diffHtml = diff !== null
+          ? `<span style="font-weight:600;color:${diff > 0 ? 'var(--danger-ink)' : 'var(--positive-ink)'}">${diff > 0 ? '+' : ''}${diff.toFixed(1)}%</span>`
+          : `<span style="color:var(--muted)">—</span>`;
+        const volFmt = new Intl.NumberFormat('nl-NL',{maximumFractionDigits:0});
+        return `<tr>
+          <td><strong>${r.category}</strong></td>
+          <td style="font-family:'IBM Plex Mono',monospace">${fmtU(r.unitPrice)} <span style="font-size:11px;color:var(--muted)">${unitLabel}</span></td>
+          <td style="font-family:'IBM Plex Mono',monospace;color:var(--muted)">${avgPrice ? fmtU(avgPrice) + ` <span style="font-size:11px">${unitLabel}</span>` : '—'}</td>
+          <td>${diffHtml}</td>
+          <td style="font-size:12px;color:var(--muted)">${volFmt.format(r.totalQty)} ${r.unit}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
   },
   async renderOverzicht(){
     if (!CURRENT_USER) return; // demo summary already shown by render()
