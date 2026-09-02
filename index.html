@@ -802,15 +802,52 @@ table.table tr.clickable:hover{background:#faf9f4}
 
         <!-- TAB: profiel -->
         <div id="dashTab-profiel" class="dash-tab" style="display:none">
-          <div class="panel card">
+          <!-- View mode -->
+          <div class="panel card" id="dashProfileView">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px">
               <div>
                 <h3 style="margin:0">Bedrijfsprofiel</h3>
                 <p style="margin:4px 0 0;font-size:13px;color:var(--muted)">Gegevens die zijn ingevuld tijdens de Quick Scan.</p>
               </div>
-              <button class="btn btn-ghost btn-sm" onclick="Router.go('scan')">Profiel aanpassen</button>
+              <button class="btn btn-ghost btn-sm" id="dashProfileEditBtn" onclick="Dashboard.openProfileEdit()">Bewerken</button>
             </div>
             <div class="kv" id="dashProfileKv"></div>
+          </div>
+          <!-- Edit mode -->
+          <div class="panel card" id="dashProfileEdit" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+              <h3 style="margin:0">Bedrijfsprofiel bewerken</h3>
+              <button class="btn btn-ghost btn-sm" onclick="Dashboard.closeProfileEdit()">Annuleren</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" id="dashProfileForm">
+              <div class="field"><label>Bedrijfsnaam</label><input type="text" id="pf_company" placeholder="Jouw horecazaak"></div>
+              <div class="field"><label>Contactpersoon</label><input type="text" id="pf_contact" placeholder="Naam"></div>
+              <div class="field"><label>E-mailadres</label><input type="email" id="pf_email" disabled style="background:var(--bg);color:var(--muted)"></div>
+              <div class="field"><label>Telefoon</label><input type="tel" id="pf_phone" placeholder="+31 6 ..."></div>
+              <div class="field"><label>Type horecazaak</label>
+                <select id="pf_type">
+                  <option value="">— Kies type —</option>
+                  <option>Restaurant</option><option>Café/Bar</option><option>Hotel</option>
+                  <option>Fastfood/Snackbar</option><option>Catering</option><option>Overig</option>
+                </select>
+              </div>
+              <div class="field"><label>Vestigingsplaats</label><input type="text" id="pf_city" placeholder="Stad"></div>
+              <div class="field"><label>Jaaromzet</label>
+                <select id="pf_turnover">
+                  <option value="">— Kies range —</option>
+                  <option>Minder dan € 100.000</option><option>€ 100.000 – € 250.000</option>
+                  <option>€ 250.000 – € 450.000</option><option>€ 450.000 – € 750.000</option>
+                  <option>€ 750.000 – € 1.500.000</option><option>Meer dan € 1.500.000</option>
+                </select>
+              </div>
+              <div class="field"><label>Aantal vestigingen</label><input type="number" id="pf_locations" min="1" placeholder="1"></div>
+              <div class="field"><label>KVK-nummer</label><input type="text" id="pf_kvk" placeholder="12345678"></div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:20px">
+              <button class="btn btn-primary" onclick="Dashboard.saveProfile()">Opslaan</button>
+              <button class="btn btn-ghost" onclick="Dashboard.closeProfileEdit()">Annuleren</button>
+            </div>
+            <div id="dashProfileSaveStatus" style="margin-top:10px;font-size:13px"></div>
           </div>
           <div class="panel card" id="dashProfileStats" style="display:none">
             <h3>Jouw cijfers op basis van uploads</h3>
@@ -1784,6 +1821,19 @@ const Dashboard = {
     if (CURRENT_USER) {
       const emailEl = document.getElementById('docUploadEmail');
       if (emailEl && !emailEl.value) emailEl.value = CURRENT_USER.email;
+      // Load profile from Supabase and patch STATE so company name shows correctly
+      sb.from('profiles').select('company_name,contact_person,phone,business_type,city,turnover,locations').eq('email', CURRENT_USER.email).maybeSingle().then(({ data }) => {
+        if (data) {
+          if (data.company_name)   STATE.account.companyName   = data.company_name;
+          if (data.contact_person) STATE.account.contactPerson = data.contact_person;
+          if (data.phone)          STATE.account.phone         = data.phone;
+          if (data.business_type)  STATE.profile.businessType  = data.business_type;
+          if (data.city)           STATE.profile.city          = data.city;
+          if (data.turnover)       STATE.profile.turnover      = data.turnover;
+          if (data.locations)      STATE.profile.locations     = data.locations;
+          document.getElementById('dashCompanyName').textContent = data.company_name || CURRENT_USER.email;
+        }
+      });
     }
     this.render();
     Router.go("dashboard");
@@ -1791,7 +1841,7 @@ const Dashboard = {
   render(){
     const rows = buildSubgroupRows();
     document.getElementById("dashCompanyName").textContent =
-      CURRENT_USER ? (CURRENT_USER.email) : (STATE.account.companyName || "Voorbeeld Horecazaak");
+      CURRENT_USER ? (STATE.account.companyName || CURRENT_USER.email) : (STATE.account.companyName || "Voorbeeld Horecazaak");
     const pct = STATE.result ? STATE.result.profilePct : Engine.profileCompletion();
     document.getElementById("dashProfilePct2").textContent = pct + "% voltooid";
     document.getElementById("dashProfileBar").style.width = pct + "%";
@@ -2008,18 +2058,11 @@ const Dashboard = {
     const pct = Math.min(100, 30 + catCount * 10);
     document.getElementById('dashProfilePct').textContent = pct + '%';
 
-    // Benchmark chart
-    const BENCHMARK = {
-      'Gas':        { avg: 3200,  label: 'Gas' },
-      'Elektra':    { avg: 9800,  label: 'Elektra' },
-      'Verzekeringen': { avg: 2800, label: 'Verzekeringen' },
-      'Afval & milieu': { avg: 980, label: 'Afval' },
-      'Telecom':    { avg: 1400,  label: 'Telecom' },
-      'Fris':       { avg: 1800,  label: 'Frisdrank' },
-      'Muziekrechten': { avg: 380, label: 'Muziekrechten' },
-      'Inkoop (overig)': { avg: 5400, label: 'Inkoop' },
-      'Vlees':      { avg: 4200,  label: 'Vlees' },
-    };
+    // Benchmark chart — fetch from Supabase
+    const { data: benchRows } = await sb.from('benchmark_data').select('category_name, avg_amount, sample_size');
+    const BENCHMARK = {};
+    (benchRows || []).forEach(r => { BENCHMARK[r.category_name] = { avg: parseFloat(r.avg_amount), n: r.sample_size }; });
+
     const benchCats = Object.keys(agg).filter(c => BENCHMARK[c]);
     if (!benchCats.length) return;
 
@@ -2037,6 +2080,7 @@ const Dashboard = {
       benchCats.map(cat => {
         const mine = agg[cat];
         const avg = BENCHMARK[cat].avg;
+        const n = BENCHMARK[cat].n;
         const diff = mine - avg;
         const diffPct = Math.round((diff / avg) * 100);
         const diffColor = diff > 0 ? 'var(--danger-ink)' : 'var(--positive-ink)';
@@ -2045,7 +2089,7 @@ const Dashboard = {
           <div style="margin-bottom:14px">
             <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13px;margin-bottom:4px">
               <span style="color:var(--ink);font-weight:500">${cat}</span>
-              <span style="font-size:11px;color:${diffColor}">${diffLabel}</span>
+              <span style="font-size:11px;color:${diffColor}">${diffLabel}${n ? ` (n=${n})` : ''}</span>
             </div>
             <div style="position:relative;height:20px;background:var(--line);border-radius:4px;overflow:hidden;margin-bottom:3px">
               <div style="height:100%;width:${Math.round(mine/maxVal*100)}%;background:var(--brand);border-radius:4px"></div>
@@ -2120,28 +2164,51 @@ const Dashboard = {
   },
 
   async renderProfiel(){
-    // Already rendered by render(), but also fetch extracted stats if logged in
     const statsCard = document.getElementById('dashProfileStats');
     const statsKv = document.getElementById('dashProfileStatsKv');
-    if (!statsCard || !statsKv || !CURRENT_USER) return;
+    const kvEl = document.getElementById('dashProfileKv');
+    const editBtn = document.getElementById('dashProfileEditBtn');
 
-    const { data, error } = await sb
-      .from('extracted_data')
+    if (!CURRENT_USER) {
+      if (editBtn) editBtn.style.display = 'none';
+      return;
+    }
+    if (editBtn) editBtn.style.display = '';
+
+    // Load profile from Supabase (preferred) or fall back to STATE
+    const { data: prof } = await sb.from('profiles').select('*').eq('email', CURRENT_USER.email).maybeSingle();
+    const p = prof || {};
+    const sp = STATE.profile || {};
+    const acc = STATE.account || {};
+
+    if (kvEl) kvEl.innerHTML = `
+      <div><span>Bedrijfsnaam</span>${p.company_name || acc.companyName || '—'}</div>
+      <div><span>Contactpersoon</span>${p.contact_person || acc.contactPerson || '—'}</div>
+      <div><span>E-mail</span>${CURRENT_USER.email}</div>
+      <div><span>Telefoon</span>${p.phone || acc.phone || '—'}</div>
+      <div><span>Type horecazaak</span>${p.business_type || sp.businessType || '—'}</div>
+      <div><span>Vestigingsplaats</span>${p.city || sp.city || '—'}</div>
+      <div><span>Jaaromzet</span>${p.turnover || sp.turnover || '—'}</div>
+      <div><span>Aantal vestigingen</span>${p.locations || sp.locations || '—'}</div>
+      ${p.kvk_number ? `<div><span>KVK-nummer</span>${p.kvk_number}</div>` : ''}
+    `;
+
+    // Also store loaded profile for edit form
+    this._loadedProfile = p;
+
+    // Extracted stats
+    if (!statsCard || !statsKv) return;
+    const { data: exData } = await sb.from('extracted_data')
       .select('volume_bier, volume_elektra_kwh, volume_gas_m3, volume_frisdrank, vuilnis_kosten, verzekering_dekking')
       .eq('email', CURRENT_USER.email);
 
-    if (error || !data || !data.length) { statsCard.style.display = 'none'; return; }
-
-    const sum = (key) => data.reduce((acc, r) => acc + (parseFloat(r[key]) || 0), 0);
+    if (!exData || !exData.length) { statsCard.style.display = 'none'; return; }
+    const sum = key => exData.reduce((acc, r) => acc + (parseFloat(r[key]) || 0), 0);
     const fmt = v => new Intl.NumberFormat('nl-NL',{maximumFractionDigits:0}).format(v);
-
-    const gas = sum('volume_gas_m3');
-    const kwh = sum('volume_elektra_kwh');
-    const bier = sum('volume_bier');
-    const fris = sum('volume_frisdrank');
-    const afval = sum('vuilnis_kosten');
-    const dekking = data.map(r => r.verzekering_dekking).filter(Boolean).join('; ') || null;
-
+    const gas = sum('volume_gas_m3'), kwh = sum('volume_elektra_kwh'),
+          bier = sum('volume_bier'), fris = sum('volume_frisdrank'),
+          afval = sum('vuilnis_kosten');
+    const dekking = exData.map(r => r.verzekering_dekking).filter(Boolean).join('; ') || null;
     const items = [
       gas   ? `<div><span>Gasverbruik (m³)</span>${fmt(gas)} m³</div>` : '',
       kwh   ? `<div><span>Elektraverbruik (kWh)</span>${fmt(kwh)} kWh</div>` : '',
@@ -2150,10 +2217,71 @@ const Dashboard = {
       afval ? `<div><span>Afvalkosten</span>€${fmt(afval)}</div>` : '',
       dekking ? `<div><span>Verzekeringsdekking</span>${dekking}</div>` : '',
     ].filter(Boolean);
-
     if (!items.length) { statsCard.style.display = 'none'; return; }
     statsKv.innerHTML = items.join('');
     statsCard.style.display = 'block';
+  },
+
+  _loadedProfile: {},
+  openProfileEdit(){
+    const p = this._loadedProfile || {};
+    const sp = STATE.profile || {};
+    const acc = STATE.account || {};
+    document.getElementById('pf_company').value  = p.company_name   || acc.companyName   || '';
+    document.getElementById('pf_contact').value  = p.contact_person || acc.contactPerson || '';
+    document.getElementById('pf_email').value    = CURRENT_USER?.email || '';
+    document.getElementById('pf_phone').value    = p.phone          || acc.phone         || '';
+    document.getElementById('pf_type').value     = p.business_type  || sp.businessType   || '';
+    document.getElementById('pf_city').value     = p.city           || sp.city           || '';
+    document.getElementById('pf_turnover').value = p.turnover       || sp.turnover       || '';
+    document.getElementById('pf_locations').value= p.locations      || sp.locations      || '';
+    document.getElementById('pf_kvk').value      = p.kvk_number     || acc.kvkNumber     || '';
+    document.getElementById('dashProfileSaveStatus').textContent = '';
+    document.getElementById('dashProfileView').style.display = 'none';
+    document.getElementById('dashProfileEdit').style.display = 'block';
+  },
+  closeProfileEdit(){
+    document.getElementById('dashProfileView').style.display = 'block';
+    document.getElementById('dashProfileEdit').style.display = 'none';
+  },
+  async saveProfile(){
+    if (!CURRENT_USER) return;
+    const statusEl = document.getElementById('dashProfileSaveStatus');
+    statusEl.style.color = 'var(--ink)';
+    statusEl.textContent = 'Opslaan…';
+    const payload = {
+      email:          CURRENT_USER.email,
+      company_name:   document.getElementById('pf_company').value.trim(),
+      contact_person: document.getElementById('pf_contact').value.trim(),
+      phone:          document.getElementById('pf_phone').value.trim(),
+      business_type:  document.getElementById('pf_type').value,
+      city:           document.getElementById('pf_city').value.trim(),
+      turnover:       document.getElementById('pf_turnover').value,
+      locations:      document.getElementById('pf_locations').value.trim(),
+      kvk_number:     document.getElementById('pf_kvk').value.trim(),
+      updated_at:     new Date().toISOString(),
+    };
+    const { error } = await sb.from('profiles').upsert(payload, { onConflict: 'email' });
+    if (error) {
+      statusEl.style.color = 'var(--danger-ink)';
+      statusEl.textContent = 'Opslaan mislukt: ' + error.message;
+      return;
+    }
+    this._loadedProfile = payload;
+    // Also update STATE for consistency
+    STATE.account.companyName   = payload.company_name;
+    STATE.account.contactPerson = payload.contact_person;
+    STATE.account.phone         = payload.phone;
+    STATE.profile.businessType  = payload.business_type;
+    STATE.profile.city          = payload.city;
+    STATE.profile.turnover      = payload.turnover;
+    STATE.profile.locations     = payload.locations;
+    saveState();
+    this.closeProfileEdit();
+    this.renderProfiel();
+    // Update company name in header
+    const nameEl = document.getElementById('dashCompanyName');
+    if (nameEl && payload.company_name) nameEl.textContent = payload.company_name;
   },
 
   _stagedFiles: [],
