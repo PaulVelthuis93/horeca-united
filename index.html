@@ -236,6 +236,24 @@ table.table tr.clickable:hover{background:#faf9f4}
 .modal{background:#fff;border-radius:var(--r);max-width:640px;width:100%;max-height:86vh;overflow:auto;padding:30px;box-shadow:0 30px 70px rgba(0,0,0,.25)}
 .modal-close{float:right;background:none;border:0;font-size:20px;color:var(--muted);cursor:pointer}
 
+/* ---- machtigingen ---- */
+.auth-source-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.auth-source-card{padding:20px 22px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);display:flex;justify-content:space-between;align-items:center;gap:16px}
+.auth-source-card.active{border-color:var(--brand2);background:var(--positive-bg)}
+.auth-source-card.revoked{border-color:#d4d0c5;background:#f9f8f4;opacity:.8}
+.auth-source-info{flex:1}
+.auth-source-info strong{display:block;font-size:14.5px;margin-bottom:3px}
+.auth-source-info p{margin:0;font-size:12.5px}
+.auth-source-meta{font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:6px}
+.auth-id{font-family:var(--font-mono);font-size:11.5px;color:var(--brand2);background:var(--grey-bg);padding:3px 7px;border-radius:5px;display:inline-block;margin-top:4px}
+.audit-row{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px}
+.audit-row:last-child{border-bottom:0}
+.audit-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.audit-dot.granted{background:var(--positive-ink)}
+.audit-dot.revoked{background:var(--danger-ink)}
+.audit-dot.expired{background:var(--muted)}
+.audit-dot.updated{background:#d9a53c}
+
 @media(max-width:900px){
   .hero{grid-template-columns:1fr}
   .steps3,.benefits,.subgroup-groups,.trust-row,.stats-row,.result-grid,.grid2,.choices,.method-choices,.detail-grid{grid-template-columns:1fr!important}
@@ -740,9 +758,20 @@ table.table tr.clickable:hover{background:#faf9f4}
         <!-- TAB: machtigingen -->
         <div id="dashTab-machtigingen" class="dash-tab" style="display:none">
           <div class="panel card">
-            <h3>Machtigingen</h3>
-            <p>Machtigingen zijn altijd beperkt tot één subgroep en leverancier en kunnen op elk moment worden ingetrokken.</p>
-            <table class="table"><thead><tr><th>Subgroep</th><th>Leverancier</th><th>Gegeven op</th><th>Geldig tot</th><th>Status</th><th>Opgevraagde gegevens</th><th></th></tr></thead><tbody id="dashAuthTable"></tbody></table>
+            <div class="page-head" style="margin-bottom:14px">
+              <div>
+                <h3 style="margin:0">Privacy &amp; Machtigingen</h3>
+                <p style="margin:4px 0 0;font-size:13px">Beheer per databron welke gegevens Horeca United namens jou mag opvragen. Je kunt altijd intrekken.</p>
+              </div>
+            </div>
+            <div id="authSourceGrid" class="auth-source-grid">
+              <div class="empty-state">Laden…</div>
+            </div>
+          </div>
+          <div class="panel card" id="authHistoryCard" style="display:none">
+            <h3>Machtigingshistorie</h3>
+            <p style="font-size:13px">Iedere handeling wordt vastgelegd. Deze lijst kan niet worden gewijzigd.</p>
+            <div id="authEventList"></div>
           </div>
         </div>
 
@@ -765,14 +794,10 @@ table.table tr.clickable:hover{background:#faf9f4}
     <div class="app-layout">
       <nav class="panel side-nav">
         <div class="brand-mini">Horeca United <span style="color:var(--brand2)">beheer</span></div>
-        <a class="active">Pilot-overzicht</a>
+        <a class="active" onclick="AdminApp.showTab('leads')">Pilot-overzicht</a>
+        <a onclick="AdminApp.showTab('machtigingen')">Machtigingen</a>
         <a>Leads</a>
         <a>Ondernemingen</a>
-        <a>Subgroepen</a>
-        <a>Documenten</a>
-        <a>Analyses</a>
-        <a>Contractmomenten</a>
-        <a>Machtigingen</a>
         <a>Leveranciers</a>
         <a>Collectieve kansen</a>
         <div class="divider"></div>
@@ -821,6 +846,21 @@ table.table tr.clickable:hover{background:#faf9f4}
           </table>
           <div id="admEmpty" class="empty-state" style="display:none">Geen ondernemingen gevonden voor deze filters.</div>
         </div>
+
+        <!-- ADMIN TAB: machtigingen -->
+        <div id="admTab-machtigingen" style="display:none">
+          <div class="panel card">
+            <div class="page-head" style="margin-bottom:14px">
+              <div>
+                <h3 style="margin:0">Machtigingenoverzicht</h3>
+                <p style="margin:4px 0 0;font-size:13px">Alleen inzien — een medewerker kan geen machtiging namens een klant activeren.</p>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="AdminApp.loadAuthorizationsTab()">Verversen</button>
+            </div>
+            <div id="admAuthContent"><div class="empty-state">Laden…</div></div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -903,6 +943,22 @@ table.table tr.clickable:hover{background:#faf9f4}
     </div>
   </div>
 </section>
+
+<!-- ============ MODAL: machtiging verlenen ============ -->
+<div class="modal-overlay" id="authGrantModal">
+  <div class="modal" style="max-width:560px">
+    <button class="modal-close" onclick="AuthModule.closeGrant()">&times;</button>
+    <div id="authGrantContent"></div>
+  </div>
+</div>
+
+<!-- ============ MODAL: machtiging intrekken ============ -->
+<div class="modal-overlay" id="authRevokeModal">
+  <div class="modal" style="max-width:440px">
+    <button class="modal-close" onclick="AuthModule.closeRevoke()">&times;</button>
+    <div id="authRevokeContent"></div>
+  </div>
+</div>
 
 <!-- ============ MODAL: login ============ -->
 <div class="modal-overlay" id="loginModal">
@@ -1554,7 +1610,47 @@ const QuickScan = {
     Engine.computeResult();
     saveState();
     Engine.renderResult();
+    // Save authorization to Supabase if method is 'request'
+    if (STATE.method === 'request' && STATE.authorization.consent) {
+      QuickScan._saveAuthorization(email, company).catch(()=>{});
+    }
     Router.go("result");
+  },
+
+  async _saveAuthorization(email, company) {
+    const auth = STATE.authorization;
+    const sourceId = STATE.primary.subgroupId;
+    const now = new Date();
+    const seq = String(Math.floor(Math.random()*99999)).padStart(5,'0');
+    const authId = `AUTH-${sourceId.toUpperCase()}-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${seq}`;
+    const validityDays = parseInt(STATE.authorization.validity) || 60;
+
+    const { data: source } = await sb.from('data_sources').select('permissions,purpose').eq('id', sourceId).maybeSingle();
+
+    await sb.from('authorizations').insert({
+      id: authId,
+      user_id: CURRENT_USER?.id || null,
+      email,
+      company_name: company,
+      kvk_number: auth.kvk || null,
+      signatory_name: auth.signName || null,
+      signatory_role: auth.signRole || null,
+      data_source_id: sourceId,
+      permissions: source?.permissions || [],
+      purpose: source?.purpose || null,
+      status: 'active',
+      document_version: 'v1.0',
+      validity_days: validityDays
+    });
+
+    await sb.from('authorization_events').insert({
+      authorization_id: authId,
+      email,
+      event_type: 'GRANTED',
+      actor: 'user',
+      new_values: { company_name: company, signatory_name: auth.signName, data_source_id: sourceId },
+      note: `Machtiging verleend via Quick Scan voor ${sourceId}`
+    });
   }
 };
 
@@ -1787,6 +1883,7 @@ const Dashboard = {
       const emailEl = document.getElementById('docUploadEmail');
       if (emailEl && !emailEl.value) emailEl.value = CURRENT_USER.email;
     }
+    if (tab === 'machtigingen') AuthModule.loadAndRender();
   },
   _stagedFiles: [],
   _subgroupOptions(){
@@ -1860,24 +1957,261 @@ const Dashboard = {
   }
 };
 
-function renderAuthTable(){
-  const rows = [];
-  if(STATE.method==="request" && STATE.authorization.consent){
-    rows.push({
-      subgroup: subgroupName(STATE.primary.subgroupId),
-      supplier: STATE.primary.supplier || "Onbekende leverancier",
-      given: "Vandaag", validUntil: STATE.authorization.validity,
-      status: "Gegevens opgevraagd", scope: "Facturen en contractgegevens voor deze subgroep en leverancier"
+function renderAuthTable(){ /* legacy — vervangen door AuthModule */ }
+
+/* =========================================================
+   AuthModule — machtigingen per databron
+   ========================================================= */
+const AuthModule = {
+  _sources: [],
+  _authorizations: [],
+
+  async loadAndRender() {
+    const grid = document.getElementById('authSourceGrid');
+    const histCard = document.getElementById('authHistoryCard');
+    if (!grid) return;
+
+    // Load data sources
+    const { data: sources } = await sb.from('data_sources')
+      .select('*').eq('is_active', true).order('sort_order');
+    this._sources = sources || [];
+
+    if (!CURRENT_USER) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+        <a onclick="AuthUI.openLogin()" style="cursor:pointer;text-decoration:underline;color:var(--brand2)">Log in</a> om je machtigingen te beheren.
+      </div>`;
+      if (histCard) histCard.style.display = 'none';
+      return;
+    }
+
+    // Load active authorizations for this user
+    const { data: auths } = await sb.from('authorizations')
+      .select('*')
+      .eq('email', CURRENT_USER.email)
+      .order('granted_at', { ascending: false });
+    this._authorizations = auths || [];
+
+    // Render source cards
+    grid.innerHTML = this._sources.map(s => {
+      const auth = this._authorizations.find(a => a.data_source_id === s.id && a.status === 'active');
+      const revoked = this._authorizations.find(a => a.data_source_id === s.id && a.status === 'revoked');
+      if (auth) {
+        const until = new Date(auth.expires_at).toLocaleDateString('nl-NL');
+        return `<div class="auth-source-card active">
+          <div class="auth-source-info">
+            <strong>${s.name}</strong>
+            <p style="color:var(--positive-ink)">${s.description}</p>
+            <div class="auth-source-meta">Verleend op ${new Date(auth.granted_at).toLocaleDateString('nl-NL')} · Geldig tot ${until}</div>
+            <div class="auth-id">${auth.id}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0">
+            <span class="badge b-green">Actief</span>
+            <button class="btn btn-ghost btn-sm" style="color:var(--danger-ink);border-color:var(--danger-ink);font-size:12px" onclick="AuthModule.openRevoke('${auth.id}','${s.name}')">Intrekken</button>
+          </div>
+        </div>`;
+      } else if (revoked) {
+        return `<div class="auth-source-card revoked">
+          <div class="auth-source-info">
+            <strong>${s.name}</strong>
+            <p>${s.description}</p>
+            <div class="auth-source-meta">Ingetrokken op ${new Date(revoked.revoked_at).toLocaleDateString('nl-NL')}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0">
+            <span class="badge b-grey">Ingetrokken</span>
+            <button class="btn btn-primary btn-sm" onclick="AuthModule.openGrant('${s.id}')">Opnieuw machtigen</button>
+          </div>
+        </div>`;
+      } else {
+        return `<div class="auth-source-card">
+          <div class="auth-source-info">
+            <strong>${s.name}</strong>
+            <p>${s.description}</p>
+            <div class="auth-source-meta">${s.permissions.map(p=>`<span class="tag">${p}</span>`).join(' ')}</div>
+          </div>
+          <div style="flex-shrink:0">
+            <button class="btn btn-primary btn-sm" onclick="AuthModule.openGrant('${s.id}')">Machtigen</button>
+          </div>
+        </div>`;
+      }
+    }).join('');
+
+    // Render audit trail
+    const { data: events } = await sb.from('authorization_events')
+      .select('*')
+      .eq('email', CURRENT_USER.email)
+      .order('created_at', { ascending: false })
+      .limit(30);
+
+    if (events && events.length) {
+      histCard.style.display = 'block';
+      document.getElementById('authEventList').innerHTML = events.map(e => {
+        const dotClass = e.event_type.toLowerCase();
+        const date = new Date(e.created_at).toLocaleString('nl-NL');
+        const labels = { GRANTED:'Machtiging verleend', REVOKED:'Machtiging ingetrokken', UPDATED:'Machtiging gewijzigd', EXPIRED:'Machtiging verlopen', SUPERSEDED:'Vervangen door nieuwe machtiging' };
+        return `<div class="audit-row">
+          <div class="audit-dot ${dotClass}"></div>
+          <div>
+            <strong style="font-size:13px">${labels[e.event_type]||e.event_type}</strong>
+            ${e.authorization_id ? `<span class="auth-id" style="margin-left:6px">${e.authorization_id}</span>` : ''}
+            ${e.note ? `<div style="color:var(--muted);font-size:12px;margin-top:2px">${e.note}</div>` : ''}
+            <div style="color:var(--muted);font-size:12px;margin-top:2px">${date}</div>
+          </div>
+        </div>`;
+      }).join('');
+    } else {
+      histCard.style.display = 'none';
+    }
+  },
+
+  openGrant(sourceId) {
+    const source = this._sources.find(s => s.id === sourceId);
+    if (!source) return;
+    const el = document.getElementById('authGrantContent');
+    el.innerHTML = `
+      <h2 style="font-size:20px;margin-bottom:4px">Machtigen — ${source.name}</h2>
+      <p style="margin-bottom:18px;font-size:13.5px">Horeca United mag namens jouw onderneming de onderstaande gegevens opvragen bij <strong>${source.name}</strong> voor: <em>${source.purpose}</em>.</p>
+      <div class="note" style="margin-bottom:18px;font-size:13px">
+        <strong>Wat wordt opgehaald:</strong> ${source.permissions.join(', ')}<br>
+        <strong>Doel:</strong> ${source.purpose}<br>
+        <strong>Geldigheid:</strong> 365 dagen · op elk moment intrekbaar
+      </div>
+      <div class="grid2">
+        <div class="field"><label for="grantName">Naam tekenbevoegde</label><input type="text" id="grantName" placeholder="Bijv. Jan de Vries" value="${STATE.account.contactPerson||''}"></div>
+        <div class="field"><label for="grantRole">Functie</label><input type="text" id="grantRole" placeholder="Bijv. eigenaar" value=""></div>
+        <div class="field"><label for="grantCompany">Bedrijfsnaam</label><input type="text" id="grantCompany" placeholder="Bijv. Restaurant 't Volk B.V." value="${STATE.account.companyName||''}"></div>
+        <div class="field"><label for="grantKvk">KvK-nummer</label><input type="text" id="grantKvk" placeholder="8 cijfers" value="${STATE.authorization?.kvk||''}"></div>
+      </div>
+      <div class="consent-row" style="margin-top:8px">
+        <input type="checkbox" id="grantConsent">
+        <label for="grantConsent">Ik verklaar tekenbevoegd te zijn en machtig Horeca United B.V. om namens mijn onderneming gegevens op te vragen bij <strong>${source.name}</strong>, uitsluitend voor bovenstaand doel en binnen de genoemde geldigheidsduur. <span class="req">verplicht</span></label>
+      </div>
+      <div class="error-text" id="grantError" style="display:none;margin-top:8px"></div>
+      <div class="actions" style="margin-top:16px">
+        <button class="btn btn-primary" onclick="AuthModule.confirmGrant('${sourceId}')">Bevestigen en machtigen</button>
+        <button class="btn btn-ghost" onclick="AuthModule.closeGrant()">Annuleren</button>
+      </div>`;
+    document.getElementById('authGrantModal').classList.add('active');
+  },
+
+  async confirmGrant(sourceId) {
+    const name = document.getElementById('grantName').value.trim();
+    const role = document.getElementById('grantRole').value.trim();
+    const company = document.getElementById('grantCompany').value.trim();
+    const kvk = document.getElementById('grantKvk').value.trim();
+    const consent = document.getElementById('grantConsent').checked;
+    const errEl = document.getElementById('grantError');
+
+    if (!name || !company || !kvk || !consent) {
+      errEl.textContent = 'Vul alle verplichte velden in en bevestig de machtiging.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (!/^\d{8}$/.test(kvk.replace(/\s/g,''))) {
+      errEl.textContent = 'KvK-nummer moet 8 cijfers zijn.';
+      errEl.style.display = 'block';
+      return;
+    }
+    errEl.style.display = 'none';
+
+    const btn = document.querySelector('#authGrantContent .btn-primary');
+    btn.disabled = true; btn.textContent = 'Opslaan…';
+
+    const now = new Date();
+    const seq = String(Math.floor(Math.random()*99999)).padStart(5,'0');
+    const authId = `AUTH-${sourceId.toUpperCase()}-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${seq}`;
+    const source = this._sources.find(s => s.id === sourceId);
+    const email = CURRENT_USER.email;
+
+    const { error } = await sb.from('authorizations').insert({
+      id: authId,
+      user_id: CURRENT_USER.id,
+      email,
+      company_name: company,
+      kvk_number: kvk,
+      signatory_name: name,
+      signatory_role: role,
+      data_source_id: sourceId,
+      permissions: source.permissions,
+      purpose: source.purpose,
+      status: 'active',
+      document_version: 'v1.0',
+      validity_days: 365
     });
+
+    if (error) {
+      errEl.textContent = 'Opslaan mislukt: ' + error.message;
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Bevestigen en machtigen';
+      return;
+    }
+
+    await sb.from('authorization_events').insert({
+      authorization_id: authId,
+      email,
+      event_type: 'GRANTED',
+      actor: 'user',
+      new_values: { company_name: company, kvk_number: kvk, signatory_name: name, data_source_id: sourceId },
+      note: `Machtiging verleend voor ${source.name} door ${name} (${role||'—'})`
+    });
+
+    this.closeGrant();
+    await this.loadAndRender();
+  },
+
+  closeGrant() {
+    document.getElementById('authGrantModal').classList.remove('active');
+  },
+
+  openRevoke(authId, sourceName) {
+    document.getElementById('authRevokeContent').innerHTML = `
+      <h2 style="font-size:20px;margin-bottom:8px">Machtiging intrekken</h2>
+      <p>Weet je zeker dat je de machtiging voor <strong>${sourceName}</strong> wilt intrekken?</p>
+      <div class="note-strong" style="margin:14px 0;font-size:13px">
+        Intrekking betekent dat Horeca United geen nieuwe gegevens meer mag opvragen bij ${sourceName}. Reeds ontvangen gegevens blijven bewaard conform de bewaartermijnen.
+      </div>
+      <div class="field">
+        <label for="revokeReason">Reden <span class="hint">(optioneel)</span></label>
+        <input type="text" id="revokeReason" placeholder="Bijv. niet meer relevant">
+      </div>
+      <div class="actions" style="margin-top:16px">
+        <button class="btn btn-ghost btn-sm" style="color:var(--danger-ink);border-color:var(--danger-ink)" onclick="AuthModule.confirmRevoke('${authId}','${sourceName}')">Ja, intrekken</button>
+        <button class="btn btn-ghost" onclick="AuthModule.closeRevoke()">Annuleren</button>
+      </div>`;
+    document.getElementById('authRevokeModal').classList.add('active');
+  },
+
+  async confirmRevoke(authId, sourceName) {
+    const reason = document.getElementById('revokeReason')?.value.trim() || null;
+    const email = CURRENT_USER.email;
+
+    const { error } = await sb.from('authorizations').update({
+      status: 'revoked',
+      revoked_at: new Date().toISOString(),
+      revoked_reason: reason
+    }).eq('id', authId).eq('email', email);
+
+    if (error) { alert('Intrekken mislukt: ' + error.message); return; }
+
+    await sb.from('authorization_events').insert({
+      authorization_id: authId,
+      email,
+      event_type: 'REVOKED',
+      actor: 'user',
+      note: reason ? `Reden: ${reason}` : `Machtiging voor ${sourceName} ingetrokken`
+    });
+
+    this.closeRevoke();
+    await this.loadAndRender();
+  },
+
+  closeRevoke() {
+    document.getElementById('authRevokeModal').classList.remove('active');
   }
-  // sample historical authorization for demo richness
-  rows.push({subgroup:"Afval", supplier:"Afvalinzamelaar Regio Oost", given:"12 juni 2026", validUntil:"90 dagen", status:"Verlopen", scope:"Facturen en contractgegevens"});
-  document.getElementById("dashAuthTable").innerHTML = rows.map(r=>`
-    <tr><td>${r.subgroup}</td><td>${r.supplier}</td><td>${r.given}</td><td>${r.validUntil}</td>
-    <td><span class="badge ${r.status==="Verlopen"?"b-grey":"b-green"}">${r.status}</span></td>
-    <td style="font-size:12.5px;color:var(--muted)">${r.scope}</td>
-    <td><button class="btn btn-ghost btn-sm" onclick="alert('Machtiging ingetrokken (demo).')">Intrekken</button></td></tr>`).join("");
-}
+};
+
+// Close modals on backdrop click
+document.getElementById('authGrantModal').addEventListener('click', e => { if(e.target.id==='authGrantModal') AuthModule.closeGrant(); });
+document.getElementById('authRevokeModal').addEventListener('click', e => { if(e.target.id==='authRevokeModal') AuthModule.closeRevoke(); });
 
 /* ---------------- Lead scoring ---------------- */
 function leadScore(company){
@@ -1914,7 +2248,41 @@ const DEMO_COMPANIES = [
 ];
 
 const AdminApp = {
-  open(){ this.buildLeads(); this.renderKpis(); this.renderLeads(); Router.go("admin"); },
+  open(){ this.buildLeads(); this.renderKpis(); this.renderLeads(); this.showTab('leads'); Router.go("admin"); },
+  showTab(tab) {
+    document.getElementById('admTab-machtigingen').style.display = tab === 'machtigingen' ? 'block' : 'none';
+    // leads tab elements are always shown unless machtigingen is active
+    const leadsEls = ['admLeadTable','admEmpty'].map(id => document.getElementById(id)).filter(Boolean);
+    leadsEls.forEach(el => el.closest('.panel') && (el.closest('.panel').style.display = tab === 'leads' ? '' : 'none'));
+    document.querySelectorAll('#screen-admin .side-nav a').forEach(a => a.classList.remove('active'));
+    const idx = tab === 'leads' ? 0 : 1;
+    document.querySelectorAll('#screen-admin .side-nav a')[idx]?.classList.add('active');
+    if (tab === 'machtigingen') this.loadAuthorizationsTab();
+  },
+  async loadAuthorizationsTab() {
+    const el = document.getElementById('admAuthContent');
+    el.innerHTML = '<div class="empty-state">Laden…</div>';
+    const { data: auths, error } = await sb.from('authorizations')
+      .select('*, data_sources(name)')
+      .order('granted_at', { ascending: false })
+      .limit(200);
+    if (error) { el.innerHTML = `<div class="empty-state" style="color:var(--danger-ink)">Fout: ${error.message}</div>`; return; }
+    if (!auths || !auths.length) { el.innerHTML = '<div class="empty-state">Geen machtigingen gevonden.</div>'; return; }
+    const statusBadge = s => ({ active:'b-green', revoked:'b-grey', expired:'b-red', superseded:'b-yellow' }[s]||'b-grey');
+    const statusLabel = s => ({ active:'Actief', revoked:'Ingetrokken', expired:'Verlopen', superseded:'Vervangen' }[s]||s);
+    el.innerHTML = `<table class="table">
+      <thead><tr><th>Bedrijf</th><th>E-mail</th><th>Databron</th><th>Machtigings-ID</th><th>Verleend op</th><th>Geldig tot</th><th>Status</th></tr></thead>
+      <tbody>${auths.map(a => `<tr>
+        <td>${a.company_name||'—'}</td>
+        <td style="font-size:12.5px;color:var(--muted)">${a.email}</td>
+        <td>${a.data_sources?.name||a.data_source_id}</td>
+        <td><span class="auth-id">${a.id}</span></td>
+        <td style="font-size:12.5px">${new Date(a.granted_at).toLocaleDateString('nl-NL')}</td>
+        <td style="font-size:12.5px">${a.expires_at ? new Date(a.expires_at).toLocaleDateString('nl-NL') : '—'}</td>
+        <td><span class="badge ${statusBadge(a.status)}">${statusLabel(a.status)}</span></td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  },
   leads: [],
   buildLeads(){
     // merge demo companies with the user's own quick-scan entry, so it's visible in admin
