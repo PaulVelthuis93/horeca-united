@@ -749,6 +749,11 @@ table.table tr.clickable:hover{background:#faf9f4}
         <!-- TAB: besparingen -->
         <div id="dashTab-besparingen" class="dash-tab" style="display:none">
           <div class="panel card">
+            <h3>Uitgaven per categorie</h3>
+            <p style="font-size:13px;color:var(--muted)">Totaal geanalyseerde inkoopuitgaven op basis van geüploade facturen.</p>
+            <div id="dashSpendChart" style="margin-top:16px"></div>
+          </div>
+          <div class="panel card">
             <h3>Besparingsoverzicht</h3>
             <p>Indicatieve potentiële besparing per geanalyseerde subgroep. Definitieve bedragen volgen na documentcontrole en eventueel leveranciersvoorstel.</p>
             <table class="table"><thead><tr><th>Subgroep</th><th>Indicatieve besparing</th><th>Status</th></tr></thead><tbody id="dashSavingsTable"></tbody></table>
@@ -1884,6 +1889,57 @@ const Dashboard = {
       if (emailEl && !emailEl.value) emailEl.value = CURRENT_USER.email;
     }
     if (tab === 'machtigingen') AuthModule.loadAndRender();
+    if (tab === 'besparingen') this.renderBesparingen();
+  },
+  async renderBesparingen(){
+    const el = document.getElementById('dashSpendChart');
+    if (!el) return;
+
+    // Demo data shown when not logged in
+    const DEMO_SPEND = [
+      {category:'Inkoop (overig)', total: 4820},
+      {category:'Vlees', total: 3150},
+      {category:'Dranken', total: 2640},
+      {category:'Energie', total: 1980},
+      {category:'Schoonmaak', total: 870},
+    ];
+
+    let rows = [];
+    if (CURRENT_USER) {
+      const { data, error } = await sb
+        .from('transactions')
+        .select('amount, categories(name)')
+        .eq('email', CURRENT_USER.email);
+      if (!error && data && data.length) {
+        const agg = {};
+        data.forEach(r => {
+          const cat = r.categories?.name || 'Overig';
+          agg[cat] = (agg[cat] || 0) + parseFloat(r.amount || 0);
+        });
+        rows = Object.entries(agg)
+          .map(([category, total]) => ({category, total}))
+          .sort((a,b) => b.total - a.total);
+      }
+    }
+
+    const isDemo = rows.length === 0;
+    if (isDemo) rows = DEMO_SPEND;
+
+    const max = rows[0]?.total || 1;
+    const fmt = v => new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);
+    const COLORS = ['#163829','#2f6b4c','#4a9b71','#7ec8a0','#b2dfc3'];
+
+    el.innerHTML = (isDemo ? `<p style="font-size:12px;color:var(--muted);margin:0 0 12px;font-style:italic">Voorbeelddata — log in en upload facturen om jouw eigen uitgaven te zien.</p>` : '') +
+      rows.map((r, i) => `
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+            <span style="color:var(--ink)">${r.category}</span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)">${fmt(r.total)}</span>
+          </div>
+          <div style="background:var(--line);border-radius:4px;height:20px;overflow:hidden">
+            <div style="height:100%;width:${Math.round(r.total/max*100)}%;background:${COLORS[i%COLORS.length]};border-radius:4px;transition:width .4s ease"></div>
+          </div>
+        </div>`).join('');
   },
   _stagedFiles: [],
   _subgroupOptions(){
