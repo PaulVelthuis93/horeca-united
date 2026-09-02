@@ -1622,15 +1622,8 @@ const QuickScan = {
 
     STATE.uploadFileNames = Array.from(listEl.querySelectorAll(".file-name[style*='positive']")).map(el => el.textContent.replace(/^✓ /,""));
 
-    // Bevestigingsemail na Quick Scan upload (fire-and-forget)
-    if (STATE.uploadFileNames.length > 0) {
-      sb.functions.invoke('send-upload-confirmation', { body: {
-        email,
-        name,
-        fileNames: STATE.uploadFileNames,
-        fileCount: STATE.uploadFileNames.length,
-      }}).catch(() => {});
-    }
+    // TODO: bevestigingsemail via Resend (RESEND_API_KEY in Supabase env vars)
+    // sb.functions.invoke('send-upload-confirmation', { body: { email, name, fileNames: STATE.uploadFileNames, fileCount: STATE.uploadFileNames.length } })
   },
   complete(){
     const company = document.getElementById("f_companyName").value.trim();
@@ -2231,15 +2224,8 @@ const Dashboard = {
       saveState();
       this.render();
       this.renderDocuments();
-      // Bevestigingsemail (fire-and-forget)
-      if (CURRENT_USER) {
-        sb.functions.invoke('send-upload-confirmation', { body: {
-          email,
-          name: name || CURRENT_USER.email,
-          fileNames: uploadedNames,
-          fileCount: uploadedCount,
-        }}).catch(() => {});
-      }
+      // TODO: bevestigingsemail via Resend (RESEND_API_KEY in Supabase env vars)
+      // sb.functions.invoke('send-upload-confirmation', { body: { email, name, fileNames: uploadedNames, fileCount: uploadedCount } })
     } catch(err) {
       statusEl.style.color = "var(--danger-ink)";
       statusEl.textContent = "Upload mislukt: " + err.message;
