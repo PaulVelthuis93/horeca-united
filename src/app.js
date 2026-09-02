@@ -1000,6 +1000,11 @@ const Dashboard = {
     if (!upItems.length) { upCard.style.display = 'none'; return; }
 
     upCard.style.display = 'block';
+
+    // Find best savings opportunity (highest absolute overspend vs benchmark)
+    let bestOpportunity = null;
+    let totalOverspend = 0;
+
     upList.innerHTML = `<table class="table">
       <thead><tr><th>Categorie</th><th>Jouw prijs</th><th>Groepsgemiddelde</th><th>Verschil</th><th>Volume</th></tr></thead>
       <tbody>${upItems.map(r => {
@@ -1011,6 +1016,14 @@ const Dashboard = {
           ? `<span style="font-weight:600;color:${diff > 0 ? 'var(--danger-ink)' : 'var(--positive-ink)'}">${diff > 0 ? '+' : ''}${diff.toFixed(1)}%</span>`
           : `<span style="color:var(--muted)">—</span>`;
         const volFmt = new Intl.NumberFormat('nl-NL',{maximumFractionDigits:0});
+        // Track overspend for CTA
+        if (diff !== null && diff > 5 && avgPrice) {
+          const annualOverspend = (r.unitPrice - avgPrice) * r.totalQty;
+          totalOverspend += annualOverspend;
+          if (!bestOpportunity || annualOverspend > bestOpportunity.saving) {
+            bestOpportunity = { category: r.category, diff, saving: annualOverspend, unitPrice: r.unitPrice, avgPrice, unitLabel };
+          }
+        }
         return `<tr>
           <td><strong>${r.category}</strong></td>
           <td style="font-family:'IBM Plex Mono',monospace">${fmtU(r.unitPrice)} <span style="font-size:11px;color:var(--muted)">${unitLabel}</span></td>
@@ -1020,6 +1033,9 @@ const Dashboard = {
         </tr>`;
       }).join('')}</tbody>
     </table>`;
+
+    // Show proposal CTA if overspend found
+    Proposals.showCTA(bestOpportunity, totalOverspend);
   },
   async renderOverzicht(){
     if (!CURRENT_USER) return; // demo summary already shown by render()
@@ -1627,6 +1643,54 @@ function leadLabel(score){
   if(score>=30) return ["Nieuw","b-grey"];
   return ["Koud","b-grey"];
 }
+
+/* ---------------- Proposals (voorstel-flow) ---------------- */
+const Proposals = {
+  _opportunity: null,
+  _totalOverspend: 0,
+
+  showCTA(opportunity, totalOverspend) {
+    const card = document.getElementById('dashProposalCard');
+    if (!card) return;
+    if (!opportunity || totalOverspend < 100) { card.style.display = 'none'; return; }
+    this._opportunity = opportunity;
+    this._totalOverspend = totalOverspend;
+    const fmt = v => new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);
+    document.getElementById('dashProposalTitle').textContent =
+      `Wij kunnen jou ${fmt(totalOverspend)} besparen op ${opportunity.category}`;
+    document.getElementById('dashProposalDesc').textContent =
+      `Je betaalt ${opportunity.diff.toFixed(0)}% meer dan het groepsgemiddelde voor ${opportunity.category} (${opportunity.unitLabel}). ` +
+      `Via Horeca United onderhandelen we collectief voor betere tarieven.`;
+    document.getElementById('dashProposalSaving').textContent = fmt(totalOverspend);
+    document.getElementById('dashProposalStatus').style.display = 'none';
+    card.style.display = 'block';
+  },
+
+  async registerInterest() {
+    if (!CURRENT_USER || !this._opportunity) return;
+    const btn = document.querySelector('#dashProposalCard .btn-primary');
+    if (btn) { btn.disabled = true; btn.textContent = 'Bezig…'; }
+    const { error } = await sb.from('proposals').insert({
+      email: CURRENT_USER.email,
+      category: this._opportunity.category,
+      user_unit_price: this._opportunity.unitPrice,
+      benchmark_unit_price: this._opportunity.avgPrice,
+      estimated_saving: Math.round(this._totalOverspend),
+      status: 'interested',
+    });
+    const statusEl = document.getElementById('dashProposalStatus');
+    statusEl.style.display = 'block';
+    if (error) {
+      statusEl.style.color = 'var(--danger-ink)';
+      statusEl.textContent = 'Er ging iets mis: ' + error.message;
+      if (btn) { btn.disabled = false; btn.textContent = 'Ja, stuur mij een voorstel'; }
+    } else {
+      statusEl.style.color = 'var(--positive-ink)';
+      statusEl.textContent = 'Geregistreerd! Wij nemen binnen 2 werkdagen contact met je op.';
+      if (btn) btn.remove();
+    }
+  },
+};
 
 /* ---------------- Admin demo dataset ---------------- */
 const DEMO_COMPANIES = [
