@@ -1095,7 +1095,11 @@ sb.auth.getSession().then(({ data: { session } }) => {
   CURRENT_USER = session?.user ?? null;
   AuthUI.updateTopbar();
   const dashVisible = document.getElementById('screen-dashboard').classList.contains('active');
-  if (dashVisible) Dashboard.renderDocuments();
+  if (dashVisible) {
+    Dashboard.renderDocuments();
+    Dashboard.renderOverzicht();
+    Dashboard.renderProfiel();
+  }
 });
 
 /* =========================================================
@@ -1810,7 +1814,7 @@ function buildSubgroupRows(){
 
 /* ---------------- Klantdashboard ---------------- */
 const Dashboard = {
-  open(){
+  async open(){
     if(!STATE.completed){
       STATE.account.companyName = STATE.account.companyName || "Voorbeeld Horecazaak";
       Engine.computeResult();
@@ -1821,19 +1825,19 @@ const Dashboard = {
     if (CURRENT_USER) {
       const emailEl = document.getElementById('docUploadEmail');
       if (emailEl && !emailEl.value) emailEl.value = CURRENT_USER.email;
-      // Load profile from Supabase and patch STATE so company name shows correctly
-      sb.from('profiles').select('company_name,contact_person,phone,business_type,city,turnover,locations').eq('email', CURRENT_USER.email).maybeSingle().then(({ data }) => {
-        if (data) {
-          if (data.company_name)   STATE.account.companyName   = data.company_name;
-          if (data.contact_person) STATE.account.contactPerson = data.contact_person;
-          if (data.phone)          STATE.account.phone         = data.phone;
-          if (data.business_type)  STATE.profile.businessType  = data.business_type;
-          if (data.city)           STATE.profile.city          = data.city;
-          if (data.turnover)       STATE.profile.turnover      = data.turnover;
-          if (data.locations)      STATE.profile.locations     = data.locations;
-          document.getElementById('dashCompanyName').textContent = data.company_name || CURRENT_USER.email;
-        }
-      });
+      // Load profile from Supabase before render so company name is correct immediately
+      const { data } = await sb.from('profiles')
+        .select('company_name,contact_person,phone,business_type,city,turnover,locations')
+        .eq('email', CURRENT_USER.email).maybeSingle();
+      if (data) {
+        if (data.company_name)   STATE.account.companyName   = data.company_name;
+        if (data.contact_person) STATE.account.contactPerson = data.contact_person;
+        if (data.phone)          STATE.account.phone         = data.phone;
+        if (data.business_type)  STATE.profile.businessType  = data.business_type;
+        if (data.city)           STATE.profile.city          = data.city;
+        if (data.turnover)       STATE.profile.turnover      = data.turnover;
+        if (data.locations)      STATE.profile.locations     = data.locations;
+      }
     }
     this.render();
     Router.go("dashboard");
