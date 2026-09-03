@@ -63,7 +63,7 @@
         </div>
         <div class="today-card today-card--brand">
           <strong>Totaal bespaard</strong>
-          <span>€18.460 sinds aansluiting</span>
+          <span>€11.280 sinds aansluiting</span>
         </div>
       </div>
     </div>
@@ -90,10 +90,10 @@
         <h2>Eén operating system, niet nog een losse besparingstool</h2>
       </div>
       <div class="benefits">
-        <div class="panel benefit"><div class="dot"></div><div><strong>Alle kostencategorieën, één omgeving</strong><p>Van bier en energie tot verzekeringen en kassasystemen — je hoeft niet voor elke besparing een ander platform te openen.</p></div></div>
-        <div class="panel benefit"><div class="dot"></div><div><strong>Jij houdt de regie</strong><p>Machtigingen zijn altijd beperkt tot één subgroep en leverancier, met een geldigheidsduur die je zelf instelt.</p></div></div>
-        <div class="panel benefit"><div class="dot"></div><div><strong>Start licht, groei op eigen tempo</strong><p>Begin met één document. Open volgende subgroepen wanneer het jou uitkomt — geen verplichting om over te stappen.</p></div></div>
-        <div class="panel benefit"><div class="dot"></div><div><strong>Gebouwd voor de horeca</strong><p>Herkenbare kostenposten, realistische bandbreedtes en een aanpak die past bij hoe horecaondernemers werken.</p></div></div>
+        <div class="panel benefit"><div class="dot"></div><div><strong>Alle kostencategorieën, één omgeving</strong><p>Van drank en food tot afval en verzekeringen — je belangrijkste kostenposten overzichtelijk op één plek.</p></div></div>
+        <div class="panel benefit"><div class="dot"></div><div><strong>Al je contracten in beeld</strong><p>Zie in één overzicht welke contracten lopen, bij welke leverancier en wanneer ze aflopen. Zo weet je precies wanneer het tijd is om opnieuw te vergelijken of te onderhandelen.</p></div></div>
+        <div class="panel benefit"><div class="dot"></div><div><strong>Start licht, groei op eigen tempo</strong><p>Begin met één categorie. Voeg later andere kostengroepen toe wanneer het jou uitkomt — zonder verplichtingen.</p></div></div>
+        <div class="panel benefit"><div class="dot"></div><div><strong>Gebouwd voor de horeca</strong><p>Herkenbare kostenposten, realistische besparingen en een aanpak die aansluit hoe horecaondernemers werken.</p></div></div>
       </div>
     </div>
   </div>
@@ -312,7 +312,7 @@
         <div class="grid2">
           <div class="field"><label for="f_companyName">Bedrijfsnaam</label><input type="text" id="f_companyName" placeholder="Bijv. Restaurant Het Stadshuis"></div>
           <div class="field"><label for="f_contactPerson">Contactpersoon</label><input type="text" id="f_contactPerson"></div>
-          <div class="field"><label for="f_email">E-mailadres</label><input type="email" id="f_email"></div>
+          <div class="field"><label for="f_email">E-mailadres</label><input type="email" id="f_email" autocomplete="email"></div>
           <div class="field"><label for="f_phone">Telefoonnummer</label><input type="tel" id="f_phone"></div>
         </div>
         <div class="error-text" id="err_account" style="display:none">Vul minimaal bedrijfsnaam en e-mailadres in.</div>
@@ -478,7 +478,7 @@
               </div>
               <div class="field">
                 <label for="docUploadEmail">E-mailadres</label>
-                <input type="email" id="docUploadEmail" placeholder="jij@voorbeeld.nl">
+                <input type="email" id="docUploadEmail" placeholder="jij@voorbeeld.nl" autocomplete="email">
               </div>
             </div>
             <div class="upload-box" id="docUploadBox" onclick="document.getElementById('docFileInput').click()">

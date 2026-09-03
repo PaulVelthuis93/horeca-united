@@ -353,7 +353,7 @@ table.table tr.clickable:hover{background:#faf9f4}
         </div>
         <div class="today-card today-card--brand">
           <strong>Totaal bespaard</strong>
-          <span>€18.460 sinds aansluiting</span>
+          <span>€11.280 sinds aansluiting</span>
         </div>
       </div>
     </div>
@@ -380,10 +380,10 @@ table.table tr.clickable:hover{background:#faf9f4}
         <h2>Eén operating system, niet nog een losse besparingstool</h2>
       </div>
       <div class="benefits">
-        <div class="panel benefit"><div class="dot"></div><div><strong>Alle kostencategorieën, één omgeving</strong><p>Van bier en energie tot verzekeringen en kassasystemen — je hoeft niet voor elke besparing een ander platform te openen.</p></div></div>
-        <div class="panel benefit"><div class="dot"></div><div><strong>Jij houdt de regie</strong><p>Machtigingen zijn altijd beperkt tot één subgroep en leverancier, met een geldigheidsduur die je zelf instelt.</p></div></div>
-        <div class="panel benefit"><div class="dot"></div><div><strong>Start licht, groei op eigen tempo</strong><p>Begin met één document. Open volgende subgroepen wanneer het jou uitkomt — geen verplichting om over te stappen.</p></div></div>
-        <div class="panel benefit"><div class="dot"></div><div><strong>Gebouwd voor de horeca</strong><p>Herkenbare kostenposten, realistische bandbreedtes en een aanpak die past bij hoe horecaondernemers werken.</p></div></div>
+        <div class="panel benefit"><div class="dot"></div><div><strong>Alle kostencategorieën, één omgeving</strong><p>Van drank en food tot afval en verzekeringen — je belangrijkste kostenposten overzichtelijk op één plek.</p></div></div>
+        <div class="panel benefit"><div class="dot"></div><div><strong>Al je contracten in beeld</strong><p>Zie in één overzicht welke contracten lopen, bij welke leverancier en wanneer ze aflopen. Zo weet je precies wanneer het tijd is om opnieuw te vergelijken of te onderhandelen.</p></div></div>
+        <div class="panel benefit"><div class="dot"></div><div><strong>Start licht, groei op eigen tempo</strong><p>Begin met één categorie. Voeg later andere kostengroepen toe wanneer het jou uitkomt — zonder verplichtingen.</p></div></div>
+        <div class="panel benefit"><div class="dot"></div><div><strong>Gebouwd voor de horeca</strong><p>Herkenbare kostenposten, realistische besparingen en een aanpak die aansluit hoe horecaondernemers werken.</p></div></div>
       </div>
     </div>
   </div>
@@ -602,7 +602,7 @@ table.table tr.clickable:hover{background:#faf9f4}
         <div class="grid2">
           <div class="field"><label for="f_companyName">Bedrijfsnaam</label><input type="text" id="f_companyName" placeholder="Bijv. Restaurant Het Stadshuis"></div>
           <div class="field"><label for="f_contactPerson">Contactpersoon</label><input type="text" id="f_contactPerson"></div>
-          <div class="field"><label for="f_email">E-mailadres</label><input type="email" id="f_email"></div>
+          <div class="field"><label for="f_email">E-mailadres</label><input type="email" id="f_email" autocomplete="email"></div>
           <div class="field"><label for="f_phone">Telefoonnummer</label><input type="tel" id="f_phone"></div>
         </div>
         <div class="error-text" id="err_account" style="display:none">Vul minimaal bedrijfsnaam en e-mailadres in.</div>
@@ -768,7 +768,7 @@ table.table tr.clickable:hover{background:#faf9f4}
               </div>
               <div class="field">
                 <label for="docUploadEmail">E-mailadres</label>
-                <input type="email" id="docUploadEmail" placeholder="jij@voorbeeld.nl">
+                <input type="email" id="docUploadEmail" placeholder="jij@voorbeeld.nl" autocomplete="email">
               </div>
             </div>
             <div class="upload-box" id="docUploadBox" onclick="document.getElementById('docFileInput').click()">
@@ -1498,16 +1498,17 @@ async function parseAndSaveExcel(file, email, name) {
 
 const SUBGROUPS = [
   {id:"bier", group:"Dranken", name:"Bier"},
+  {id:"wijn", group:"Dranken", name:"Wijn"},
   {id:"frisdrank", group:"Dranken", name:"Frisdrank"},
   {id:"foodgroothandel", group:"Food en dagelijkse inkoop", name:"Foodgroothandel"},
   {id:"vis", group:"Food en dagelijkse inkoop", name:"Vis"},
   {id:"vlees", group:"Food en dagelijkse inkoop", name:"Vlees"},
+  {id:"gas", group:"Nutsvoorzieningen en vaste lasten", name:"Gas"},
   {id:"energie", group:"Nutsvoorzieningen en vaste lasten", name:"Energie"},
   {id:"afval", group:"Nutsvoorzieningen en vaste lasten", name:"Afval"},
   {id:"internet", group:"Nutsvoorzieningen en vaste lasten", name:"Internet en telefonie"},
   {id:"muzieklicentie", group:"Nutsvoorzieningen en vaste lasten", name:"Muzieklicentie"},
   {id:"verzekeringen", group:"Financiële diensten", name:"Verzekeringen"},
-  {id:"betaalverkeer", group:"Financiële diensten", name:"Betaalverkeer"},
 ];
 const GROUP_ORDER = ["Dranken","Food en dagelijkse inkoop","Nutsvoorzieningen en vaste lasten","Financiële diensten"];
 function subgroupName(id){ const s=SUBGROUPS.find(x=>x.id===id); return s?s.name:id; }
@@ -1519,8 +1520,8 @@ function euro(n){ return new Intl.NumberFormat("nl-NL",{style:"currency",currenc
 function defaultState(){
   return {
     profile: { businessType:"Restaurant", city:"", turnover:"€500.000 – €1.000.000", locations:"1", employees:"" },
-    selectedSubgroups: ["energie","afval","bier","betaalverkeer","verzekeringen"],
-    primary: { subgroupId:"energie", supplier:"", annualSpend:9000, contractStatus:"Actief contract", contractEnd:"", willingness:"misschien" },
+    selectedSubgroups: ["gas","energie","afval","bier","verzekeringen"],
+    primary: { subgroupId:"gas", supplier:"", annualSpend:9000, contractStatus:"Actief contract", contractEnd:"", willingness:"misschien" },
     method: "upload",
     uploadFileName: "",
     uploadFileNames: [],
@@ -1634,7 +1635,7 @@ const QuickScan = {
   },
   prev(){ if(this.step>1){ this.step--; this.render(); } },
 
-  selected: new Set(["energie","afval","bier","betaalverkeer","verzekeringen"]),
+  selected: new Set(["gas","energie","afval","bier","verzekeringen"]),
   renderCategoryTiles(){
     this.selected = new Set(STATE.selectedSubgroups);
     const box = document.getElementById("subgroupChoices");
@@ -1951,6 +1952,17 @@ const Dashboard = {
 
     // Demo banner
     document.getElementById("dashDemoBanner").style.display = CURRENT_USER ? "none" : "block";
+
+    // Demo values for stats that are otherwise 0/blank when not logged in
+    if (!CURRENT_USER) {
+      const realizedEl = document.getElementById("dashRealized");
+      if (realizedEl) realizedEl.textContent = "€ 1.240";
+      const docsEl = document.getElementById("dashDocsCount");
+      if (docsEl) docsEl.textContent = "3";
+      // Keep top-row "Profiel voltooid" in sync with the subgroep block
+      const pctEl = document.getElementById("dashProfilePct");
+      if (pctEl) pctEl.textContent = pct + "%";
+    }
 
     const shortBody = rows.slice(0,5).map(r=>`
       <tr><td><strong>${r.name}</strong></td><td><span class="badge ${r.badge}">${r.status}</span></td>
@@ -2848,7 +2860,7 @@ const Proposals = {
 /* ---------------- Admin demo dataset ---------------- */
 const DEMO_COMPANIES = [
   {name:"Restaurant Het Stadshuis", type:"Restaurant", city:"Arnhem", locations:"1", firstSubgroup:"Energie", subgroupCount:4, annualCosts:64000, potentialLow:3000, potentialHigh:8000, willingness:"ja", hasDocument:true, contractSoon:true, multiAnalysis:true, phase:"Actieve pilotklant"},
-  {name:"Brasserie De Kade", type:"Café", city:"Nijmegen", locations:"1", firstSubgroup:"Betaalverkeer", subgroupCount:1, annualCosts:9500, potentialLow:1200, potentialHigh:3000, willingness:"misschien", hasDocument:false, contractSoon:false, multiAnalysis:false, phase:"Nieuwe lead"},
+  {name:"Brasserie De Kade", type:"Café", city:"Nijmegen", locations:"1", firstSubgroup:"Wijn", subgroupCount:1, annualCosts:9500, potentialLow:1200, potentialHigh:3000, willingness:"misschien", hasDocument:false, contractSoon:false, multiAnalysis:false, phase:"Nieuwe lead"},
   {name:"Hotel Stadspoort", type:"Hotel", city:"Utrecht", locations:"2", firstSubgroup:"Afval", subgroupCount:6, annualCosts:142000, potentialLow:8000, potentialHigh:18000, willingness:"ja", hasDocument:true, contractSoon:true, multiAnalysis:true, phase:"Multi-subgroepklant"},
   {name:"Café De Hoek", type:"Café", city:"Apeldoorn", locations:"1", firstSubgroup:"Bier", subgroupCount:2, annualCosts:21000, potentialLow:1500, potentialHigh:4200, willingness:"nee", hasDocument:false, contractSoon:false, multiAnalysis:false, phase:"Quick Scan gestart"},
   {name:"Lunchroom Aan Tafel", type:"Lunchroom", city:"Zwolle", locations:"1", firstSubgroup:"Foodgroothandel", subgroupCount:3, annualCosts:38000, potentialLow:2200, potentialHigh:5600, willingness:"misschien", hasDocument:true, contractSoon:false, multiAnalysis:false, phase:"Kansrijke lead"},

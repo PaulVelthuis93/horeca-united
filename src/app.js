@@ -366,16 +366,17 @@ async function parseAndSaveExcel(file, email, name) {
 
 const SUBGROUPS = [
   {id:"bier", group:"Dranken", name:"Bier"},
+  {id:"wijn", group:"Dranken", name:"Wijn"},
   {id:"frisdrank", group:"Dranken", name:"Frisdrank"},
   {id:"foodgroothandel", group:"Food en dagelijkse inkoop", name:"Foodgroothandel"},
   {id:"vis", group:"Food en dagelijkse inkoop", name:"Vis"},
   {id:"vlees", group:"Food en dagelijkse inkoop", name:"Vlees"},
+  {id:"gas", group:"Nutsvoorzieningen en vaste lasten", name:"Gas"},
   {id:"energie", group:"Nutsvoorzieningen en vaste lasten", name:"Energie"},
   {id:"afval", group:"Nutsvoorzieningen en vaste lasten", name:"Afval"},
   {id:"internet", group:"Nutsvoorzieningen en vaste lasten", name:"Internet en telefonie"},
   {id:"muzieklicentie", group:"Nutsvoorzieningen en vaste lasten", name:"Muzieklicentie"},
   {id:"verzekeringen", group:"Financiële diensten", name:"Verzekeringen"},
-  {id:"betaalverkeer", group:"Financiële diensten", name:"Betaalverkeer"},
 ];
 const GROUP_ORDER = ["Dranken","Food en dagelijkse inkoop","Nutsvoorzieningen en vaste lasten","Financiële diensten"];
 function subgroupName(id){ const s=SUBGROUPS.find(x=>x.id===id); return s?s.name:id; }
@@ -387,8 +388,8 @@ function euro(n){ return new Intl.NumberFormat("nl-NL",{style:"currency",currenc
 function defaultState(){
   return {
     profile: { businessType:"Restaurant", city:"", turnover:"€500.000 – €1.000.000", locations:"1", employees:"" },
-    selectedSubgroups: ["energie","afval","bier","betaalverkeer","verzekeringen"],
-    primary: { subgroupId:"energie", supplier:"", annualSpend:9000, contractStatus:"Actief contract", contractEnd:"", willingness:"misschien" },
+    selectedSubgroups: ["gas","energie","afval","bier","verzekeringen"],
+    primary: { subgroupId:"gas", supplier:"", annualSpend:9000, contractStatus:"Actief contract", contractEnd:"", willingness:"misschien" },
     method: "upload",
     uploadFileName: "",
     uploadFileNames: [],
@@ -502,7 +503,7 @@ const QuickScan = {
   },
   prev(){ if(this.step>1){ this.step--; this.render(); } },
 
-  selected: new Set(["energie","afval","bier","betaalverkeer","verzekeringen"]),
+  selected: new Set(["gas","energie","afval","bier","verzekeringen"]),
   renderCategoryTiles(){
     this.selected = new Set(STATE.selectedSubgroups);
     const box = document.getElementById("subgroupChoices");
@@ -819,6 +820,17 @@ const Dashboard = {
 
     // Demo banner
     document.getElementById("dashDemoBanner").style.display = CURRENT_USER ? "none" : "block";
+
+    // Demo values for stats that are otherwise 0/blank when not logged in
+    if (!CURRENT_USER) {
+      const realizedEl = document.getElementById("dashRealized");
+      if (realizedEl) realizedEl.textContent = "€ 1.240";
+      const docsEl = document.getElementById("dashDocsCount");
+      if (docsEl) docsEl.textContent = "3";
+      // Keep top-row "Profiel voltooid" in sync with the subgroep block
+      const pctEl = document.getElementById("dashProfilePct");
+      if (pctEl) pctEl.textContent = pct + "%";
+    }
 
     const shortBody = rows.slice(0,5).map(r=>`
       <tr><td><strong>${r.name}</strong></td><td><span class="badge ${r.badge}">${r.status}</span></td>
@@ -1716,7 +1728,7 @@ const Proposals = {
 /* ---------------- Admin demo dataset ---------------- */
 const DEMO_COMPANIES = [
   {name:"Restaurant Het Stadshuis", type:"Restaurant", city:"Arnhem", locations:"1", firstSubgroup:"Energie", subgroupCount:4, annualCosts:64000, potentialLow:3000, potentialHigh:8000, willingness:"ja", hasDocument:true, contractSoon:true, multiAnalysis:true, phase:"Actieve pilotklant"},
-  {name:"Brasserie De Kade", type:"Café", city:"Nijmegen", locations:"1", firstSubgroup:"Betaalverkeer", subgroupCount:1, annualCosts:9500, potentialLow:1200, potentialHigh:3000, willingness:"misschien", hasDocument:false, contractSoon:false, multiAnalysis:false, phase:"Nieuwe lead"},
+  {name:"Brasserie De Kade", type:"Café", city:"Nijmegen", locations:"1", firstSubgroup:"Wijn", subgroupCount:1, annualCosts:9500, potentialLow:1200, potentialHigh:3000, willingness:"misschien", hasDocument:false, contractSoon:false, multiAnalysis:false, phase:"Nieuwe lead"},
   {name:"Hotel Stadspoort", type:"Hotel", city:"Utrecht", locations:"2", firstSubgroup:"Afval", subgroupCount:6, annualCosts:142000, potentialLow:8000, potentialHigh:18000, willingness:"ja", hasDocument:true, contractSoon:true, multiAnalysis:true, phase:"Multi-subgroepklant"},
   {name:"Café De Hoek", type:"Café", city:"Apeldoorn", locations:"1", firstSubgroup:"Bier", subgroupCount:2, annualCosts:21000, potentialLow:1500, potentialHigh:4200, willingness:"nee", hasDocument:false, contractSoon:false, multiAnalysis:false, phase:"Quick Scan gestart"},
   {name:"Lunchroom Aan Tafel", type:"Lunchroom", city:"Zwolle", locations:"1", firstSubgroup:"Foodgroothandel", subgroupCount:3, annualCosts:38000, potentialLow:2200, potentialHigh:5600, willingness:"misschien", hasDocument:true, contractSoon:false, multiAnalysis:false, phase:"Kansrijke lead"},
