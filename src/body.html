@@ -287,7 +287,8 @@
           <div class="grid2">
             <div class="field"><label for="f_signName">Naam tekenbevoegde</label><input type="text" id="f_signName"></div>
             <div class="field"><label for="f_signRole">Functie</label><input type="text" id="f_signRole" placeholder="Bijv. eigenaar"></div>
-            <div class="field"><label for="f_kvk">KvK-nummer</label><input type="text" id="f_kvk" placeholder="8 cijfers"></div>
+            <div class="field"><label for="f_kvk">KvK-nummer</label><input type="text" id="f_kvk" placeholder="8 cijfers" autocomplete="on"></div>
+            <div class="field"><label for="f_btw">BTW-nummer</label><input type="text" id="f_btw" placeholder="NL000000000B01" autocomplete="on"></div>
             <div class="field"><label for="f_validity">Geldigheidsduur</label><select id="f_validity"><option>30 dagen</option><option selected>60 dagen</option><option>90 dagen</option></select></div>
           </div>
           <div class="consent-row">
@@ -616,7 +617,7 @@
                 </select>
               </div>
               <div class="field"><label>Aantal vestigingen</label><input type="number" id="pf_locations" min="1" placeholder="1"></div>
-              <div class="field"><label>KVK-nummer</label><input type="text" id="pf_kvk" placeholder="12345678"></div>
+              <div class="field"><label>KVK-nummer</label><input type="text" id="pf_kvk" placeholder="12345678" autocomplete="on"></div>
             </div>
             <div style="display:flex;gap:10px;margin-top:20px">
               <button class="btn btn-primary" onclick="Dashboard.saveProfile()">Opslaan</button>
