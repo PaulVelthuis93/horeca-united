@@ -380,6 +380,7 @@ const SUBGROUPS = [
 ];
 const GROUP_ORDER = ["Dranken","Food en dagelijkse inkoop","Nutsvoorzieningen en vaste lasten","Financiële diensten"];
 function subgroupName(id){ const s=SUBGROUPS.find(x=>x.id===id); return s?s.name:id; }
+function primarySubgroupId(){ return STATE.primary?.subgroupId || STATE.selectedSubgroups[0] || ""; }
 
 const STORAGE_KEY = "huos_demo_state_v1";
 
@@ -387,13 +388,13 @@ function euro(n){ return new Intl.NumberFormat("nl-NL",{style:"currency",currenc
 
 function defaultState(){
   return {
-    profile: { businessType:"Restaurant", city:"", turnover:"€500.000 – €1.000.000", locations:"1", employees:"" },
+    profile: { businessType:"Restaurant", businessTypeOther:"", city:"" },
     selectedSubgroups: ["gas","energie","afval","bier","verzekeringen"],
-    primary: { subgroupId:"gas", supplier:"", annualSpend:9000, contractStatus:"Actief contract", contractEnd:"", willingness:"misschien" },
+    primary: { subgroupId:"", supplier:"", annualSpend:null, annualSpendUnknown:true, contractStatus:"Onbekend", contractEnd:"Onbekend", willingness:"misschien" },
     method: "upload",
     uploadFileName: "",
     uploadFileNames: [],
-    authorization: { signName:"", signRole:"", kvk:"", validity:"60 dagen", consent:false },
+    authorization: { signName:"", signRole:"", kvk:"", btw:"", validity:"60 dagen", consent:false },
     account: { companyName:"", contactPerson:"", email:"", phone:"" },
     consents: { privacy:false, processing:false, marketing:false, benchmark:false },
     result: null,
@@ -448,21 +449,20 @@ const QuickScan = {
     document.getElementById("scanStep"+this.step).style.display="block";
     document.getElementById("scanStepNr").textContent = this.step;
     document.getElementById("scanProgressBar").style.width = (this.step*20)+"%";
-    const titles = ["Over jouw zaak","Relevante subgroepen","Eerste gratis analyse","Gegevens aanleveren","Account en privacy"];
+    const titles = ["Over jouw zaak","Waar wil je op besparen?","Jouw kostenposten & contracten","Gegevens aanleveren","Account en privacy"];
     document.getElementById("scanStepTitle").textContent = titles[this.step-1];
     if(this.step===3) this.fillPrimarySelect();
     if(this.step===4) this.applyMethodUI();
   },
-  next(){
+  async next(){
     if(this.step===1){
       const city = document.getElementById("f_city").value.trim();
       document.getElementById("err_city").style.display = city ? "none":"block";
       if(!city){ document.getElementById("f_city").focus(); return; }
       STATE.profile = {
         businessType: document.getElementById("f_businessType").value,
-        city, turnover: document.getElementById("f_turnover").value,
-        locations: document.getElementById("f_locations").value,
-        employees: document.getElementById("f_employees").value
+        businessTypeOther: document.getElementById("f_businessTypeOther").value.trim(),
+        city
       };
     }
     if(this.step===2){
@@ -471,18 +471,28 @@ const QuickScan = {
       STATE.selectedSubgroups = [...this.selected];
     }
     if(this.step===3){
+      const annualValue = document.getElementById("f_annualSpendUnknown").checked
+        ? null
+        : (parseFloat(document.getElementById("f_annualSpend").value.replace(",", ".")) || null);
       STATE.primary = {
         subgroupId: document.getElementById("f_primarySubgroup").value,
         supplier: document.getElementById("f_supplier").value.trim(),
-        annualSpend: Number(document.getElementById("f_annualSpend").value),
+        annualSpend: annualValue,
+        annualSpendUnknown: document.getElementById("f_annualSpendUnknown").checked,
         contractStatus: document.getElementById("f_contractStatus").value,
-        contractEnd: document.getElementById("f_contractEnd").value.trim(),
+        contractEnd: document.getElementById("f_contractEndPreset").value === "Anders"
+          ? document.getElementById("f_contractEndOther").value.trim()
+          : document.getElementById("f_contractEndPreset").value,
         willingness: this.willingness || "misschien"
       };
     }
     if(this.step===4){
       const m = this.method;
       if(!m){ document.getElementById("err_method").style.display="block"; return; }
+      if(m==="upload" && !this._stagedFiles.length){
+        document.getElementById("err_method").textContent = "Selecteer minimaal één document voor je gekozen kostenposten.";
+        document.getElementById("err_method").style.display="block"; return;
+      }
       if(m==="request" && !document.getElementById("f_authConsent").checked){
         document.getElementById("err_method").textContent = "Bevestig de machtiging om verder te gaan.";
         document.getElementById("err_method").style.display="block"; return;
@@ -494,7 +504,7 @@ const QuickScan = {
           signName: document.getElementById("f_signName").value.trim(),
           signRole: document.getElementById("f_signRole").value.trim(),
           kvk: document.getElementById("f_kvk").value.trim(),
-          validity: document.getElementById("f_validity").value,
+          btw: document.getElementById("f_btw").value.trim(),
           consent: true
         };
       }
@@ -502,6 +512,10 @@ const QuickScan = {
     if(this.step<5){ this.step++; this.render(); saveState(); }
   },
   prev(){ if(this.step>1){ this.step--; this.render(); } },
+  toggleOtherBusinessType(){
+    const field = document.getElementById("scanBusinessTypeOtherField");
+    if(field) field.style.display = document.getElementById("f_businessType").value === "Overig" ? "" : "none";
+  },
 
   selected: new Set(["gas","energie","afval","bier","verzekeringen"]),
   renderCategoryTiles(){
@@ -520,18 +534,56 @@ const QuickScan = {
     const tile = document.querySelector(`#subgroupChoices .tile[data-id="${id}"]`);
     tile.classList.toggle("selected");
   },
+  toggleAll(){
+    const all = SUBGROUPS.map(s=>s.id);
+    const selectingAll = this.selected.size !== all.length;
+    this.selected = new Set(selectingAll ? all : []);
+    document.querySelectorAll("#subgroupChoices .tile").forEach(tile=>{
+      tile.classList.toggle("selected", selectingAll);
+    });
+  },
+  toggleAnnualSpendUnknown(){
+    const unknown = document.getElementById("f_annualSpendUnknown").checked;
+    const input = document.getElementById("f_annualSpend");
+    input.disabled = unknown;
+    if(unknown) input.value = "";
+  },
+  toggleContractEndOther(){
+    const isOther = document.getElementById("f_contractEndPreset").value === "Anders";
+    document.getElementById("f_contractEndOther").style.display = isOther ? "" : "none";
+  },
   fillPrimarySelect(){
     const sel = document.getElementById("f_primarySubgroup");
     const current = STATE.primary.subgroupId;
-    sel.innerHTML = [...this.selected].map(id=>`<option value="${id}" ${id===current?'selected':''}>${subgroupName(id)}</option>`).join("");
+    sel.innerHTML = `<option value="">— Geen prioriteit —</option>` +
+      [...this.selected].map(id=>`<option value="${id}" ${id===current?'selected':''}>${subgroupName(id)}</option>`).join("");
+    const summary = document.getElementById("selectedSubgroupSummary");
+    if(summary) summary.innerHTML = [...this.selected].map(id=>`<span class="selected-subgroup-pill">${subgroupName(id)}</span>`).join("");
     document.getElementById("f_supplier").value = STATE.primary.supplier||"";
-    document.getElementById("f_contractEnd").value = STATE.primary.contractEnd||"";
-    if(STATE.primary.annualSpend) document.getElementById("f_annualSpend").value = STATE.primary.annualSpend;
-    document.getElementById("f_contractStatus").value = STATE.primary.contractStatus||"Actief contract";
+    const spendUnknown = STATE.primary.annualSpendUnknown || !STATE.primary.annualSpend;
+    document.getElementById("f_annualSpendUnknown").checked = spendUnknown;
+    document.getElementById("f_annualSpend").value = spendUnknown ? "" : STATE.primary.annualSpend;
+    document.getElementById("f_annualSpend").disabled = spendUnknown;
+    document.getElementById("f_contractStatus").value = STATE.primary.contractStatus||"Onbekend";
+    const end = STATE.primary.contractEnd || "Onbekend";
+    const endPreset = ["Onbekend","Maandelijks opzegbaar","Binnen 3 maanden","Binnen 6 maanden","Binnen 12 maanden","Langer dan 12 maanden"].includes(end) ? end : "Anders";
+    document.getElementById("f_contractEndPreset").value = endPreset;
+    document.getElementById("f_contractEndOther").value = endPreset === "Anders" ? end : "";
+    this.toggleContractEndOther();
     this.willingness = STATE.primary.willingness || "misschien";
+    const updateWillingnessHint = (val) => {
+      const hint = document.getElementById("willingnessHintMisschien");
+      if(hint) hint.style.display = val==="misschien" ? "block" : "none";
+    };
+    updateWillingnessHint(this.willingness);
     document.querySelectorAll("#switchWillingness .tile").forEach(t=>{
       t.classList.toggle("selected", t.dataset.val===this.willingness);
-      t.onclick = ()=>{ this.willingness = t.dataset.val; document.querySelectorAll("#switchWillingness .tile").forEach(x=>x.classList.remove("selected")); t.classList.add("selected"); };
+      t.onclick = ()=>{
+        this.willingness = t.dataset.val;
+        document.querySelectorAll("#switchWillingness .tile").forEach(x=>x.classList.remove("selected"));
+        t.classList.add("selected");
+        updateWillingnessHint(t.dataset.val);
+      };
     });
   },
   method: null,
@@ -547,91 +599,86 @@ const QuickScan = {
     if(this.method){
       document.querySelectorAll(".method-card").forEach(c=>c.classList.toggle("selected", c.dataset.method===this.method));
     }
+    if(this.method==="upload"){
+      const introEl = document.getElementById("uploadSubgroupIntro");
+      if(introEl && this.selected.size>0){
+        const names = [...this.selected].map(id=>subgroupName(id)).join(", ");
+        introEl.textContent = `Fijn dat je het zelf wilt uploaden! Je hebt aangegeven te willen besparen op: ${names}. Upload hieronder de bijbehorende jaarafrekening of termijnfactuur. Heb je niet alles bij de hand? Geen zorgen — je kunt dit later toevoegen in je dashboard.`;
+        introEl.style.display = "block";
+      }
+    }
   },
   _excelExtraction: null,
+  _stagedFiles: [],
+  renderQuickUploadStaging(){
+    const area = document.getElementById("quickUploadStagingArea");
+    const body = document.getElementById("quickUploadStagingBody");
+    if(!area || !body) return;
+    const selected = [...this.selected];
+    const options = selected.map(id=>`<option value="${id}">${subgroupName(id)}</option>`).join("");
+    body.innerHTML = this._stagedFiles.map((file, i)=>`
+      <tr>
+        <td style="font-size:13px">${file.name}</td>
+        <td><select id="quickUploadSg_${i}" class="quick-upload-select">${options}</select></td>
+        <td><input type="text" id="quickUploadSupplier_${i}" class="quick-upload-input" placeholder="Bijv. leverancier"></td>
+      </tr>`).join("");
+    this._stagedFiles.forEach((_, i)=>{
+      document.getElementById(`quickUploadSg_${i}`).value = primarySubgroupId() || selected[0] || "";
+      document.getElementById(`quickUploadSupplier_${i}`).value = STATE.primary.supplier || "";
+    });
+    area.style.display = this._stagedFiles.length ? "block" : "none";
+  },
   async handleFiles(fileList){
     const files = Array.from(fileList || []).filter(f => f && f.size > 0);
     if(!files.length) return;
+    this._stagedFiles = [...this._stagedFiles, ...files];
     const box = document.getElementById("uploadBox");
     box.classList.add("filled");
     document.getElementById("uploadBoxText").innerHTML = `Sleep bestanden hierheen of klik om toe te voegen<br><span class="hint">Factuur, contract, jaarafrekening of offerte (Excel, PDF, Word)</span>`;
     const listEl = document.getElementById("uploadFileList");
-
+    listEl.innerHTML = this._stagedFiles.map(file=>`<div><span class="file-name">${file.name}</span> <span class="hint">(${(file.size/1024).toFixed(1)} KB)</span></div>`).join("");
+    this.renderQuickUploadStaging();
+  },
+  async uploadStagedFiles(){
     const email = (document.getElementById("f_email").value.trim() || "onbekend@demo.nl").toLowerCase();
     const name = document.getElementById("f_companyName").value.trim() || "Onbekend bedrijf";
     const uploadedPaths = [];
+    const statusEl = document.getElementById("err_method");
     this._excelExtraction = null;
-
-    // Excel automatisch uitlezen vóór upload
-    const excelFile = files.find(f => /\.xlsx?$/i.test(f.name));
-    if(excelFile) {
-      const statusRow = document.createElement("div");
-      statusRow.id = "excelStatusRow";
-      statusRow.innerHTML = `<span class="hint">Excel wordt uitgelezen…</span>`;
-      listEl.appendChild(statusRow);
-      try {
-        this._excelExtraction = await parseExcel(excelFile);
-        fillFormFromExtraction(this._excelExtraction);
-        const missing = this._excelExtraction.missing;
-        statusRow.innerHTML = missing.length
-          ? `<span class="hint" style="color:var(--warn-ink)">Excel uitgelezen — controleer: ${missing.join(', ')}</span>`
-          : `<span class="hint" style="color:var(--positive-ink)">Excel volledig uitgelezen. Controleer de ingevulde waarden.</span>`;
-      } catch(err) {
-        this._excelExtraction = { error: err.message, found: {}, missing: ['alles'] };
-        statusRow.innerHTML = `<span class="hint" style="color:var(--warn-ink)">Excel kon niet worden uitgelezen — vul handmatig in.</span>`;
-      }
-    }
-
-    for(const file of files) {
-      const row = document.createElement("div");
-      row.innerHTML = `<span class="file-name">⏳ ${file.name}</span> <span class="hint">(${(file.size/1024).toFixed(1)} KB) — bezig…</span>`;
-      listEl.appendChild(row);
-      try {
-        const path = await uploadToSupabase(file, name, email, STATE.primary.subgroupId || null);
+    for(let i=0; i<this._stagedFiles.length; i++){
+      const file = this._stagedFiles[i];
+      const subgroup = document.getElementById(`quickUploadSg_${i}`)?.value || primarySubgroupId();
+      try{
+        const path = await uploadToSupabase(file, name, email, subgroup);
         uploadedPaths.push(path);
-        row.innerHTML = `<span class="file-name" style="color:var(--positive-ink)">✓ ${file.name}</span> <span class="hint">(${(file.size/1024).toFixed(1)} KB)</span>`;
-        if(!STATE.uploadFileName) STATE.uploadFileName = file.name;
-      } catch(err) {
-        row.innerHTML = `<span class="file-name" style="color:var(--danger-ink)">✗ ${file.name}</span> <span class="hint">Upload mislukt: ${err.message}</span>`;
+        STATE.uploadFileNames = [...new Set([...(STATE.uploadFileNames || []), file.name])];
+        STATE.uploadDetails = [...(STATE.uploadDetails || []), { fileName:file.name, subgroup, supplier:document.getElementById(`quickUploadSupplier_${i}`)?.value.trim() || "" }];
+      }catch(err){
+        statusEl.textContent = `Upload van ${file.name} mislukt: ${err.message}`;
+        statusEl.style.display = "block";
+        return false;
       }
     }
-
-    const statusRow = document.getElementById("excelStatusRow") || (() => {
-      const r = document.createElement("div"); listEl.appendChild(r); return r;
-    })();
-
-    try {
-      const recordId = await saveExtractedData(email, name, uploadedPaths, this._excelExtraction);
-
-      // PDF AI-extractie starten als er een PDF is geüpload
-      const pdfPath = uploadedPaths.find(p => /\.pdf$/i.test(p));
-      if (pdfPath && recordId) {
-        statusRow.innerHTML = `<span class="hint">PDF wordt geanalyseerd door AI…</span>`;
-        const { error: aiError } = await sb.functions.invoke('extract-pdf', {
-          body: { file_path: pdfPath, record_id: recordId }
-        });
-        if (aiError) {
-          statusRow.innerHTML = `<span class="hint" style="color:var(--warn-ink)">Opgeslagen, maar AI-analyse is mislukt. Controleer de waarden handmatig.</span>`;
-        } else {
-          statusRow.innerHTML = `<span class="hint" style="color:var(--positive-ink)">Opgeslagen én door AI geanalyseerd.</span>`;
-        }
-      } else {
-        statusRow.innerHTML = `<span class="hint" style="color:var(--positive-ink)">Gegevens opgeslagen.</span>`;
+    if(uploadedPaths.length){
+      const excelFile = this._stagedFiles.find(f => /\.xlsx?$/i.test(f.name));
+      if(excelFile){
+        try{
+          this._excelExtraction = await parseExcel(excelFile);
+          fillFormFromExtraction(this._excelExtraction);
+          await saveExtractedData(email, name, uploadedPaths, this._excelExtraction);
+        }catch(err){ console.warn("Excel kon niet worden verwerkt:", err); }
       }
-    } catch(err) {
-      statusRow.innerHTML = `<span class="hint" style="color:var(--danger-ink)">Opslaan mislukt: ${err.message}</span>`;
     }
-
-    STATE.uploadFileNames = Array.from(listEl.querySelectorAll(".file-name[style*='positive']")).map(el => el.textContent.replace(/^✓ /,""));
-
-    // TODO: bevestigingsemail via Resend (RESEND_API_KEY in Supabase env vars)
-    // sb.functions.invoke('send-upload-confirmation', { body: { email, name, fileNames: STATE.uploadFileNames, fileCount: STATE.uploadFileNames.length } })
+    this._stagedFiles = [];
+    document.getElementById("uploadFileList").innerHTML = `<span class="hint" style="color:var(--positive-ink)">Documenten opgeslagen.</span>`;
+    document.getElementById("quickUploadStagingArea").style.display = "none";
+    return true;
   },
-  complete(){
+  async complete(){
     const company = document.getElementById("f_companyName").value.trim();
     const email = document.getElementById("f_email").value.trim();
     if(!company || !email){ document.getElementById("err_account").style.display="block"; return; }
-    if(!document.getElementById("f_consentPrivacy").checked || !document.getElementById("f_consentProcessing").checked){
+    if(!document.getElementById("f_consentPrivacy").checked){
       document.getElementById("err_account").textContent = "Bevestig de privacyverklaring en verwerkingstoestemming om verder te gaan.";
       document.getElementById("err_account").style.display="block"; return;
     }
@@ -641,9 +688,16 @@ const QuickScan = {
       contactPerson: document.getElementById("f_contactPerson").value.trim(),
       email, phone: document.getElementById("f_phone").value.trim()
     };
+    if(STATE.method === "upload" && this._stagedFiles.length){
+      const uploaded = await this.uploadStagedFiles();
+      if(!uploaded){
+        document.getElementById("err_account").textContent = "De documenten konden niet worden opgeslagen. Probeer het opnieuw.";
+        document.getElementById("err_account").style.display = "block";
+        return;
+      }
+    }
     STATE.consents = {
-      privacy: true, processing: true,
-      marketing: document.getElementById("f_consentMarketing").checked,
+      privacy: true, processing: true, marketing: true,
       benchmark: document.getElementById("f_consentBenchmark").checked
     };
     STATE.completed = true;
@@ -659,7 +713,7 @@ const QuickScan = {
 
   async _saveAuthorization(email, company) {
     const auth = STATE.authorization;
-    const sourceId = STATE.primary.subgroupId;
+    const sourceId = primarySubgroupId();
     const now = new Date();
     const seq = String(Math.floor(Math.random()*99999)).padStart(5,'0');
     const authId = `AUTH-${sourceId.toUpperCase()}-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${seq}`;
@@ -701,8 +755,6 @@ const Engine = {
     const n = STATE.selectedSubgroups.length;
     let low = spend*0.04 + n*180;
     let high = spend*0.10 + n*420;
-    const locBoost = {"1":1, "2":1.15, "3 – 5":1.3, "6+":1.5}[STATE.profile.locations] || 1;
-    low *= locBoost; high *= locBoost;
     if(STATE.primary.contractStatus === "Onbekend" || STATE.primary.contractStatus === "Geen vast contract"){
       high *= 1.15;
     }
@@ -728,12 +780,12 @@ const Engine = {
     return "Later aanleveren";
   },
   recommendedNext(){
-    return STATE.selectedSubgroups.filter(id=>id!==STATE.primary.subgroupId).slice(0,3).map(subgroupName);
+    return STATE.selectedSubgroups.filter(id=>id!==primarySubgroupId()).slice(0,3).map(subgroupName);
   },
   renderResult(){
     if(!STATE.result) this.computeResult();
     document.getElementById("resultRange").textContent = `${euro(STATE.result.low)} – ${euro(STATE.result.high)}`;
-    document.getElementById("resultPrimary").textContent = subgroupName(STATE.primary.subgroupId);
+    document.getElementById("resultPrimary").textContent = subgroupName(primarySubgroupId()) || "Alle gekozen subgroepen";
     document.getElementById("resultStatus").textContent = this.statusLabel();
     document.getElementById("resultCount").textContent = STATE.selectedSubgroups.length;
     document.getElementById("resultProfilePct").textContent = STATE.result.profilePct + "%";
@@ -741,7 +793,7 @@ const Engine = {
     document.getElementById("resultRecommendations").textContent = recs.length
       ? "Op basis van je bedrijfsprofiel zien we mogelijke kansen bij " + recs.join(", ") + "."
       : "Open in je dashboard extra subgroepen om meer aanbevelingen te ontvangen.";
-    document.getElementById("resultSummary").innerHTML = `Je eerste analyse voor <strong>${subgroupName(STATE.primary.subgroupId)}</strong> staat klaar. Horeca United gebruikt deze uitkomst om de meest kansrijke volgende subgroepen te adviseren.`;
+    document.getElementById("resultSummary").innerHTML = `Je Quick Scan voor <strong>${STATE.selectedSubgroups.length} gekozen kostenposten</strong> staat klaar. Horeca United gebruikt deze uitkomst om de meest kansrijke besparingskansen te adviseren.`;
   }
 };
 
@@ -752,7 +804,7 @@ function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){ h = (h*31 + s.charCod
 
 function buildSubgroupRows(){
   return STATE.selectedSubgroups.map((id,i)=>{
-    const isPrimary = id === STATE.primary.subgroupId;
+    const isPrimary = id === primarySubgroupId();
     let status, badge;
     if(isPrimary){
       status = Engine.statusLabel(); badge="b-green";
@@ -765,7 +817,7 @@ function buildSubgroupRows(){
       [status, badge] = opts[h];
     }
     const kans = isPrimary ? "Hoog" : (hashStr(id) % 3 === 0 ? "Mogelijk" : "Onbekend");
-    const cost = isPrimary ? STATE.primary.annualSpend : Math.round(1500 + (hashStr(id)%40)*350);
+    const cost = isPrimary ? (STATE.primary.annualSpend || 6000) : Math.round(1500 + (hashStr(id)%40)*350);
     const supplier = isPrimary ? (STATE.primary.supplier || "Onbekende leverancier") : "—";
     const contractEnd = isPrimary ? (STATE.primary.contractEnd || "Onbekend") : "Onbekend";
     const missing = isPrimary && STATE.method==="later" ? "Factuur of contract" : (status==="Documenten ontbreken" ? "Factuur" : "—");
@@ -788,7 +840,7 @@ const Dashboard = {
       if (emailEl && !emailEl.value) emailEl.value = CURRENT_USER.email;
       // Load profile from Supabase before render so company name is correct immediately
       const { data } = await sb.from('profiles')
-        .select('company_name,contact_person,phone,business_type,city,turnover,locations')
+        .select('company_name,contact_person,phone,business_type,city')
         .eq('email', CURRENT_USER.email).maybeSingle();
       if (data) {
         if (data.company_name)   STATE.account.companyName   = data.company_name;
@@ -796,8 +848,6 @@ const Dashboard = {
         if (data.phone)          STATE.account.phone         = data.phone;
         if (data.business_type)  STATE.profile.businessType  = data.business_type;
         if (data.city)           STATE.profile.city          = data.city;
-        if (data.turnover)       STATE.profile.turnover      = data.turnover;
-        if (data.locations)      STATE.profile.locations     = data.locations;
       }
     }
     this.render();
@@ -843,7 +893,7 @@ const Dashboard = {
       <td><button class="btn btn-ghost btn-sm" onclick="alert('In deze demo start dit de analyse-flow voor ${r.name}.')">${r.status==="Nog niet ingevuld"?"Start analyse":"Bekijk"}</button></td></tr>`).join("");
     document.getElementById("dashSubgroupTableFull").innerHTML = fullBody || `<tr><td colspan="7" class="empty-state">Nog geen subgroepen geselecteerd.</td></tr>`;
 
-    const next = STATE.selectedSubgroups.filter(id=>id!==STATE.primary.subgroupId)[0];
+    const next = STATE.selectedSubgroups.filter(id=>id!==primarySubgroupId())[0];
     document.getElementById("dashNextAction").textContent = next
       ? `Upload je ${subgroupName(next).toLowerCase()}-document om je volgende analyse te starten. Je profiel is voor ${pct}% voltooid.`
       : `Open extra subgroepen om je volledige benchmark te ontgrendelen. Je profiel is voor ${pct}% voltooid.`;
@@ -868,8 +918,6 @@ const Dashboard = {
       <div><span>Telefoon</span>${STATE.account.phone||"—"}</div>
       <div><span>Type horecazaak</span>${p.businessType||"—"}</div>
       <div><span>Vestigingsplaats</span>${p.city||"—"}</div>
-      <div><span>Jaaromzet</span>${p.turnover||"—"}</div>
-      <div><span>Aantal vestigingen</span>${p.locations||"—"}</div>
     `;
 
     // async tabs that update independently
@@ -925,7 +973,7 @@ const Dashboard = {
         <thead><tr><th>Bestand</th><th>Subgroep</th><th>Status</th></tr></thead>
         <tbody>${uploadedNames.map(n => `<tr>
           <td>${n}</td>
-          <td>${subgroupName(STATE.primary.subgroupId)}</td>
+          <td>${subgroupName(primarySubgroupId())}</td>
           <td><span class="badge b-green">Ontvangen</span></td>
         </tr>`).join('')}</tbody>
       </table>`;
@@ -1228,8 +1276,6 @@ const Dashboard = {
       <div><span>Telefoon</span>${p.phone || acc.phone || '—'}</div>
       <div><span>Type horecazaak</span>${p.business_type || sp.businessType || '—'}</div>
       <div><span>Vestigingsplaats</span>${p.city || sp.city || '—'}</div>
-      <div><span>Jaaromzet</span>${p.turnover || sp.turnover || '—'}</div>
-      <div><span>Aantal vestigingen</span>${p.locations || sp.locations || '—'}</div>
       ${p.kvk_number ? `<div><span>KVK-nummer</span>${p.kvk_number}</div>` : ''}
     `;
 
@@ -1271,10 +1317,12 @@ const Dashboard = {
     document.getElementById('pf_contact').value  = p.contact_person || acc.contactPerson || '';
     document.getElementById('pf_email').value    = CURRENT_USER?.email || '';
     document.getElementById('pf_phone').value    = p.phone          || acc.phone         || '';
-    document.getElementById('pf_type').value     = p.business_type  || sp.businessType   || '';
+    const storedType = p.business_type || sp.businessType || '';
+    const storedOther = storedType.match(/^Overig\s*[—-]\s*(.+)$/);
+    document.getElementById('pf_type').value = storedOther ? 'Overig' : storedType;
+    document.getElementById('pf_type_other').value = storedOther ? storedOther[1] : '';
     document.getElementById('pf_city').value     = p.city           || sp.city           || '';
-    document.getElementById('pf_turnover').value = p.turnover       || sp.turnover       || '';
-    document.getElementById('pf_locations').value= p.locations      || sp.locations      || '';
+    this.toggleOtherBusinessType();
     document.getElementById('pf_kvk').value      = p.kvk_number     || acc.kvkNumber     || '';
     document.getElementById('dashProfileSaveStatus').textContent = '';
     document.getElementById('dashProfileView').style.display = 'none';
@@ -1294,10 +1342,10 @@ const Dashboard = {
       company_name:   document.getElementById('pf_company').value.trim(),
       contact_person: document.getElementById('pf_contact').value.trim(),
       phone:          document.getElementById('pf_phone').value.trim(),
-      business_type:  document.getElementById('pf_type').value,
+       business_type:  document.getElementById('pf_type').value === 'Overig' && document.getElementById('pf_type_other').value.trim()
+         ? `Overig — ${document.getElementById('pf_type_other').value.trim()}`
+         : document.getElementById('pf_type').value,
       city:           document.getElementById('pf_city').value.trim(),
-      turnover:       document.getElementById('pf_turnover').value,
-      locations:      document.getElementById('pf_locations').value.trim(),
       kvk_number:     document.getElementById('pf_kvk').value.trim(),
       updated_at:     new Date().toISOString(),
     };
@@ -1314,14 +1362,17 @@ const Dashboard = {
     STATE.account.phone         = payload.phone;
     STATE.profile.businessType  = payload.business_type;
     STATE.profile.city          = payload.city;
-    STATE.profile.turnover      = payload.turnover;
-    STATE.profile.locations     = payload.locations;
     saveState();
     this.closeProfileEdit();
     this.renderProfiel();
     // Update company name in header
     const nameEl = document.getElementById('dashCompanyName');
     if (nameEl && payload.company_name) nameEl.textContent = payload.company_name;
+  },
+  toggleOtherBusinessType(){
+    const field = document.getElementById('pfTypeOtherField');
+    const type = document.getElementById('pf_type')?.value;
+    if (field) field.style.display = type === 'Overig' ? '' : 'none';
   },
 
   _stagedFiles: [],
@@ -1333,7 +1384,7 @@ const Dashboard = {
     const files = Array.from(input.files || []);
     if(!files.length) return;
     this._stagedFiles = files;
-    const defaultSg = STATE.primary.subgroupId || "";
+    const defaultSg = primarySubgroupId() || "";
     const opts = this._subgroupOptions();
     document.getElementById("docStagingBody").innerHTML = files.map((f, i) => `
       <tr>
@@ -1527,7 +1578,7 @@ const AuthModule = {
       </div>
       <div class="consent-row" style="margin-top:8px">
         <input type="checkbox" id="grantConsent">
-        <label for="grantConsent">Ik verklaar tekenbevoegd te zijn en machtig Horeca United B.V. om namens mijn onderneming gegevens op te vragen bij <strong>${source.name}</strong>, uitsluitend voor bovenstaand doel en binnen de genoemde geldigheidsduur. <span class="req">verplicht</span></label>
+        <label for="grantConsent">Ik verklaar tekenbevoegd te zijn en machtig Horeca United B.V. om namens mijn onderneming gegevens op te vragen bij <strong>${source.name}</strong>, uitsluitend voor bovenstaand doel. De machtiging geldt totdat ik deze intrek. <span class="req">verplicht</span></label>
       </div>
       <div class="error-text" id="grantError" style="display:none;margin-top:8px"></div>
       <div class="actions" style="margin-top:16px">
@@ -1661,7 +1712,6 @@ document.getElementById('authRevokeModal').addEventListener('click', e => { if(e
 function leadScore(company){
   let score = 0;
   score += Math.min(30, (company.annualCosts/2000));
-  score += {"1":0,"2":5,"3 – 5":10,"6+":15}[company.locations] || 0;
   score += Math.min(15, company.subgroupCount*2);
   score += company.hasDocument ? 12 : 0;
   score += company.contractSoon ? 10 : 0;
@@ -1782,7 +1832,7 @@ const AdminApp = {
     if(STATE.completed && STATE.account.companyName){
       rows.unshift({
         name: STATE.account.companyName, type: STATE.profile.businessType||"Overig", city: STATE.profile.city||"Onbekend",
-        locations: STATE.profile.locations||"1", firstSubgroup: subgroupName(STATE.primary.subgroupId),
+        firstSubgroup: subgroupName(primarySubgroupId()),
         subgroupCount: STATE.selectedSubgroups.length, annualCosts: STATE.primary.annualSpend||6000,
         potentialLow: STATE.result?STATE.result.low:1500, potentialHigh: STATE.result?STATE.result.high:4000,
         willingness: STATE.primary.willingness||"misschien", hasDocument: STATE.method==="upload",
@@ -1822,7 +1872,6 @@ const AdminApp = {
       return `<tr class="clickable" onclick="AdminApp.openDetail('${encodeURIComponent(c.name)}')">
         <td><strong>${c.name}</strong>${c.self?' <span class="tag" style="margin-left:4px">jouw invoer</span>':''}</td>
         <td>${c.type}<br><span class="hint">${c.city}</span></td>
-        <td>${c.locations}</td>
         <td>${c.firstSubgroup}</td>
         <td>${c.subgroupCount}</td>
         <td>${euro(c.annualCosts)}</td>
@@ -1843,7 +1892,7 @@ const AdminApp = {
     document.getElementById("detailModalContent").innerHTML = `
       <span class="pill">${c.phase}</span>
       <h2 style="margin-top:12px">${c.name}</h2>
-      <p>${c.type} · ${c.city} · ${c.locations} vestiging(en)</p>
+      <p>${c.type} · ${c.city}</p>
       <div class="detail-grid">
         <div>
           <h3 style="font-size:15px">Bedrijfsprofiel</h3>
@@ -1886,4 +1935,3 @@ const DemoData = {
 /* ---------------- Init ---------------- */
 renderSubgroupOverview();
 if(STATE.completed){ Engine.computeResult(); }
-

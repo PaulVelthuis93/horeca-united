@@ -129,7 +129,7 @@
       <div class="trust-row">
         <div class="panel trust-item"><strong>Eerste scan binnen 5 minuten</strong><p>Zonder verplichtingen, zonder verborgen kosten.</p></div>
         <div class="panel trust-item"><strong>Start met één document</strong><p>Je hoeft niet meteen je hele administratie te delen.</p></div>
-        <div class="panel trust-item"><strong>Beperkte, intrekbare machtigingen</strong><p>Gekoppeld aan één subgroep, met een zelf gekozen looptijd.</p></div>
+        <div class="panel trust-item"><strong>Beperkte, intrekbare machtigingen</strong><p>Gekoppeld aan jouw kostenposten, altijd opzegbaar via je dashboard.</p></div>
         <div class="panel trust-item"><strong>Geen verplichting om over te stappen</strong><p>Een besparingskans is een advies, geen verplichting.</p></div>
       </div>
     </div>
@@ -167,30 +167,19 @@
         <div class="grid2">
           <div class="field">
             <label for="f_businessType">Type horecazaak</label>
-            <select id="f_businessType">
+            <select id="f_businessType" onchange="QuickScan.toggleOtherBusinessType()">
               <option>Restaurant</option><option>Café</option><option>Hotel</option><option>Lunchroom</option>
               <option>Cafetaria / fastservice</option><option>Eventlocatie</option><option>Catering</option><option>Overig</option>
             </select>
+          </div>
+          <div class="field" id="scanBusinessTypeOtherField" style="display:none">
+            <label for="f_businessTypeOther">Welk type horecazaak?</label>
+            <input type="text" id="f_businessTypeOther" placeholder="Bijv. strandpaviljoen">
           </div>
           <div class="field">
             <label for="f_city">Vestigingsplaats</label>
             <input type="text" id="f_city" placeholder="Bijv. Arnhem">
             <div class="error-text" id="err_city" style="display:none">Vul een vestigingsplaats in.</div>
-          </div>
-          <div class="field">
-            <label for="f_turnover">Jaaromzet</label>
-            <select id="f_turnover">
-              <option>&lt; €250.000</option><option>€250.000 – €500.000</option><option selected>€500.000 – €1.000.000</option>
-              <option>€1.000.000 – €2.500.000</option><option>&gt; €2.500.000</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="f_locations">Aantal vestigingen</label>
-            <select id="f_locations"><option>1</option><option>2</option><option>3 – 5</option><option>6+</option></select>
-          </div>
-          <div class="field">
-            <label for="f_employees">Aantal medewerkers <span class="hint">(optioneel)</span></label>
-            <select id="f_employees"><option value="">— niet opgeven —</option><option>1 – 5</option><option>6 – 15</option><option>16 – 40</option><option>40+</option></select>
           </div>
         </div>
         <div class="actions"><button class="btn btn-primary" onclick="QuickScan.next()">Verder</button></div>
@@ -198,7 +187,11 @@
 
       <!-- STEP 2 -->
       <div id="scanStep2" class="card scan-step" style="display:none">
-        <p>Selecteer de kostenposten die voor jouw bedrijf relevant zijn. Je hoeft nu nog geen details in te vullen.</p>
+        <p>Waar wil je als eerste geld besparen? Kies één of meer kostenposten. Je hoeft nu nog geen details in te vullen.</p>
+        <div class="selection-toolbar">
+          <span class="hint">Je kunt meerdere kostenposten tegelijk kiezen.</span>
+          <button class="btn btn-ghost btn-sm" type="button" onclick="QuickScan.toggleAll()">Alles aanvinken</button>
+        </div>
         <div id="subgroupChoices"></div>
         <div class="error-text" id="err_subgroups" style="display:none">Selecteer minimaal één subgroep.</div>
         <div class="actions">
@@ -209,41 +202,58 @@
 
       <!-- STEP 3 -->
       <div id="scanStep3" class="card scan-step" style="display:none">
+        <div class="scan-section-intro">
+          <h3>Jouw gekozen kostenposten</h3>
+          <p class="hint">Alle gekozen subgroepen worden meegenomen. Je kunt optioneel één prioriteit aangeven.</p>
+        </div>
+        <div id="selectedSubgroupSummary" class="selected-subgroup-summary"></div>
         <div class="field">
-          <label for="f_primarySubgroup">Kies je eerste analyse</label>
-          <span class="hint">Dit is de subgroep waar we direct mee aan de slag gaan.</span>
+          <label for="f_primarySubgroup">Optionele prioriteit</label>
+          <span class="hint">Laat op “Geen prioriteit” staan als alle gekozen kostenposten even belangrijk zijn.</span>
           <select id="f_primarySubgroup" style="margin-top:6px"></select>
         </div>
         <div class="grid2">
           <div class="field">
-            <label for="f_supplier">Huidige leverancier</label>
-            <input type="text" id="f_supplier" placeholder="Bijv. Regionale drankenhandel">
+            <label for="f_supplier">Leverancier voor de hele scan <span class="hint">(optioneel)</span></label>
+            <input type="text" id="f_supplier" placeholder="Bijv. regionale groothandel">
           </div>
           <div class="field">
-            <label for="f_annualSpend">Geschatte jaarlijkse kosten</label>
-            <select id="f_annualSpend">
-              <option value="4000">&lt; €5.000</option>
-              <option value="9000" selected>€5.000 – €15.000</option>
-              <option value="22000">€15.000 – €30.000</option>
-              <option value="45000">€30.000 – €60.000</option>
-              <option value="80000">&gt; €60.000</option>
-            </select>
+            <label for="f_annualSpend">Geschatte jaarlijkse kosten <span class="hint">(optioneel)</span></label>
+            <input type="text" id="f_annualSpend" placeholder="Bijv. 12000">
+            <label class="inline-check"><input type="checkbox" id="f_annualSpendUnknown" onchange="QuickScan.toggleAnnualSpendUnknown()"> Onbekend</label>
           </div>
           <div class="field">
             <label for="f_contractStatus">Contractstatus</label>
-            <select id="f_contractStatus"><option>Actief contract</option><option>Geen vast contract</option><option>Onbekend</option></select>
+            <select id="f_contractStatus">
+              <option value="Onbekend">Onbekend</option>
+              <option value="Maandelijks opzegbaar">Maandelijks opzegbaar</option>
+              <option value="Vast contract">Vast contract</option>
+              <option value="Geen vast contract">Geen vast contract</option>
+            </select>
           </div>
           <div class="field">
-            <label for="f_contractEnd">Looptijd / vermoedelijke einddatum</label>
-            <input type="text" id="f_contractEnd" placeholder="Bijv. december 2026">
+            <label for="f_contractEndPreset">Contracteinde</label>
+            <select id="f_contractEndPreset" onchange="QuickScan.toggleContractEndOther()">
+              <option value="Onbekend">Onbekend</option>
+              <option value="Maandelijks opzegbaar">Maandelijks opzegbaar</option>
+              <option value="Binnen 3 maanden">Binnen 3 maanden</option>
+              <option value="Binnen 6 maanden">Binnen 6 maanden</option>
+              <option value="Binnen 12 maanden">Binnen 12 maanden</option>
+              <option value="Langer dan 12 maanden">Langer dan 12 maanden</option>
+              <option value="Anders">Anders</option>
+            </select>
+            <input type="text" id="f_contractEndOther" style="display:none;margin-top:8px" placeholder="Bijv. december 2026">
           </div>
         </div>
         <div class="field">
-          <label>Bereidheid om over te stappen bij aantoonbaar voordeel</label>
+          <label>Wat wil je met de uitkomst doen?</label>
           <div class="choices" id="switchWillingness" style="grid-template-columns:repeat(3,1fr)">
-            <div class="tile" data-val="ja"><span class="box"></span> Ja</div>
-            <div class="tile" data-val="misschien"><span class="box"></span> Misschien, bij duidelijk voordeel</div>
-            <div class="tile" data-val="nee"><span class="box"></span> Nee, alleen benchmarken</div>
+            <div class="tile" data-val="ja"><span class="box"></span><span>Ja, ik sta open voor een voorstel</span></div>
+            <div class="tile" data-val="misschien"><span class="box"></span><span>Misschien, als het voordeel duidelijk is</span></div>
+            <div class="tile" data-val="nee"><span class="box"></span><span>Alleen inzicht en benchmarken</span></div>
+          </div>
+          <div id=”willingnessHintMisschien” class=”note” style=”display:none;margin-top:10px”>
+            <strong>Goed idee.</strong> We laten je eerst precies zien hoeveel je kunt besparen en onder welke voorwaarden. Pas daarna beslis jij of je verdergaat — zonder verplichtingen. Veel ondernemers die dit zien, zijn verrast hoe groot het verschil kan zijn.
           </div>
         </div>
         <div class="actions">
@@ -254,7 +264,7 @@
 
       <!-- STEP 4 -->
       <div id="scanStep4" class="card scan-step" style="display:none">
-        <p>Kies hoe je de gegevens voor je eerste analyse aanlevert.</p>
+        <p>Kies hoe je de gegevens voor je gekozen kostenposten aanlevert.</p>
         <div class="method-choices">
           <div class="method-card" data-method="upload" onclick="QuickScan.selectMethod('upload')"><strong>Zelf uploaden</strong><p>Factuur, contract, jaarafrekening of offerte.</p></div>
           <div class="method-card" data-method="request" onclick="QuickScan.selectMethod('request')"><strong>Horeca United vraagt gegevens op</strong><p>Via een beperkte, intrekbare machtiging.</p></div>
@@ -262,15 +272,8 @@
         </div>
 
         <div id="methodUpload" class="method-panel" style="display:none">
-          <div class="grid2" style="margin-bottom:12px">
-            <div class="field"><label for="u_bier">Volume bier (liter of hl)</label><input type="number" step="any" id="u_bier" placeholder="bijv. 1200"></div>
-            <div class="field"><label for="u_elektra">Volume elektra (kWh)</label><input type="number" step="any" id="u_elektra" placeholder="bijv. 4500"></div>
-            <div class="field"><label for="u_gas">Volume gas (m³)</label><input type="number" step="any" id="u_gas" placeholder="bijv. 800"></div>
-            <div class="field"><label for="u_frisdrank">Volume frisdrank</label><input type="number" step="any" id="u_frisdrank" placeholder="bijv. 300"></div>
-            <div class="field"><label for="u_vuilnis_kosten">Kosten vuilnis (€)</label><input type="number" step="any" id="u_vuilnis_kosten" placeholder="bijv. 185.50"></div>
-            <div class="field"><label for="u_vuilnis_container">Type / maat container</label><input type="text" id="u_vuilnis_container" placeholder="bijv. 1100L restafval"></div>
-          </div>
-          <div class="field" style="margin-bottom:14px"><label for="u_verzekering">Verzekering – wat is gedekt?</label><textarea id="u_verzekering" rows="2" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px;resize:vertical" placeholder="Bijv. inventaris, bedrijfsschade, aansprakelijkheid…"></textarea></div>
+          <div class="note" id="uploadSubgroupIntro" style="display:none;margin-bottom:14px"></div>
+          <div class="note" style="margin-bottom:14px">Upload bij voorkeur een jaarafrekening of termijnfactuur. Je koppelt elk bestand hieronder aan de juiste kostenpost.</div>
           <div class="upload-box" id="uploadBox"
                onclick="document.getElementById('fileInput').click()"
                ondragover="event.preventDefault();this.classList.add('dragover')"
@@ -280,25 +283,31 @@
             <div id="uploadBoxText">Sleep bestanden hierheen of klik om te selecteren<br><span class="hint">Factuur, contract, jaarafrekening of offerte (Excel, PDF, Word)</span></div>
           </div>
           <div class="upload-file-list" id="uploadFileList"></div>
+          <div id="quickUploadStagingArea" style="display:none;margin-top:14px">
+            <table class="table">
+              <thead><tr><th>Bestand</th><th>Subgroep</th><th>Leverancier <span class="hint">(optioneel)</span></th></tr></thead>
+              <tbody id="quickUploadStagingBody"></tbody>
+            </table>
+          </div>
         </div>
 
         <div id="methodRequest" class="method-panel" style="display:none">
-          <div class="note" style="margin-bottom:16px">Deze machtiging geldt uitsluitend voor de geselecteerde subgroep en leverancier, alleen voor gegevens die nodig zijn voor de analyse, en voor een beperkte geldigheidsduur. Ze geeft <strong>geen</strong> toestemming om contracten op te zeggen, leveranciers te wijzigen, nieuwe contracten aan te gaan, betalingen uit te voeren of bestellingen te plaatsen. Daarvoor is later altijd een aparte opdracht of volmacht nodig.</div>
+          <div class="note" style="margin-bottom:16px">Deze machtiging geldt uitsluitend voor de gekozen kostenposten en leverancier, alleen voor gegevens die nodig zijn voor de analyse, en totdat jij deze intrekt. Ze geeft <strong>geen</strong> toestemming om contracten op te zeggen, leveranciers te wijzigen, nieuwe contracten aan te gaan, betalingen uit te voeren of bestellingen te plaatsen.</div>
           <div class="grid2">
             <div class="field"><label for="f_signName">Naam tekenbevoegde</label><input type="text" id="f_signName"></div>
             <div class="field"><label for="f_signRole">Functie</label><input type="text" id="f_signRole" placeholder="Bijv. eigenaar"></div>
             <div class="field"><label for="f_kvk">KvK-nummer</label><input type="text" id="f_kvk" placeholder="8 cijfers" autocomplete="on"></div>
             <div class="field"><label for="f_btw">BTW-nummer</label><input type="text" id="f_btw" placeholder="NL000000000B01" autocomplete="on"></div>
-            <div class="field"><label for="f_validity">Geldigheidsduur</label><select id="f_validity"><option>30 dagen</option><option selected>60 dagen</option><option>90 dagen</option></select></div>
           </div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:12px">De machtiging blijft geldig totdat je deze zelf intrekt via je dashboard of schriftelijk opzegt bij Horeca United. Je kunt dit op ieder moment doen.</p>
           <div class="consent-row">
             <input type="checkbox" id="f_authConsent">
-            <label for="f_authConsent">Ik machtig Horeca United om namens mijn onderneming gegevens op te vragen bij de hierboven genoemde leverancier, uitsluitend voor de geselecteerde subgroep en binnen de gekozen geldigheidsduur. <span class="req">verplicht</span></label>
+            <label for="f_authConsent">Ik machtig Horeca United om namens mijn onderneming gegevens op te vragen bij de hierboven genoemde leverancier, uitsluitend voor de geselecteerde kostenposten. De machtiging geldt totdat ik deze intrek. <span class="req">verplicht</span></label>
           </div>
         </div>
 
         <div id="methodLater" class="method-panel" style="display:none">
-          <div class="success-box">Geen probleem — je kunt de Quick Scan afronden en dit document later toevoegen via je klantdashboard.</div>
+          <div class="success-box">Geen probleem — je kunt de Quick Scan afronden. In je klantdashboard vind je uploadinstructies terug en kun je later per subgroep een jaarafrekening, termijnfactuur of vergelijkbaar document toevoegen.</div>
         </div>
 
         <div class="error-text" id="err_method" style="display:none">Kies een van de drie opties om verder te gaan.</div>
@@ -320,19 +329,11 @@
         <div style="margin-top:8px">
           <div class="consent-row">
             <input type="checkbox" id="f_consentPrivacy">
-            <label for="f_consentPrivacy">Ik heb kennisgenomen van de <a onclick="Router.go('privacy')" style="text-decoration:underline;cursor:pointer">privacyverklaring</a>. <span class="req">verplicht</span></label>
-          </div>
-          <div class="consent-row">
-            <input type="checkbox" id="f_consentProcessing">
-            <label for="f_consentProcessing">Ik geef toestemming voor verwerking van mijn gegevens ten behoeve van de Quick Scan. <span class="req">verplicht</span></label>
-          </div>
-          <div class="consent-row">
-            <input type="checkbox" id="f_consentMarketing">
-            <label for="f_consentMarketing">Ik ontvang graag optionele marketingcommunicatie van Horeca United.</label>
+            <label for="f_consentPrivacy">Ik heb kennisgenomen van de <a onclick="Router.go('privacy')" style="text-decoration:underline;cursor:pointer">privacyverklaring</a>, geef toestemming voor verwerking van mijn gegevens en ontvang graag updates van Horeca United. <span class="req">verplicht</span></label>
           </div>
           <div class="consent-row">
             <input type="checkbox" id="f_consentBenchmark">
-            <label for="f_consentBenchmark">Ik geef Horeca United toestemming om mijn geanonimiseerde gegevens te gebruiken voor benchmarks.</label>
+            <label for="f_consentBenchmark">Ik geef Horeca United toestemming om mijn geanonimiseerde gegevens te gebruiken voor het identificeren van potentiële besparingskansen.</label>
           </div>
         </div>
         <div class="actions">
@@ -601,22 +602,14 @@
               <div class="field"><label>E-mailadres</label><input type="email" id="pf_email" disabled style="background:var(--bg);color:var(--muted)"></div>
               <div class="field"><label>Telefoon</label><input type="tel" id="pf_phone" placeholder="+31 6 ..."></div>
               <div class="field"><label>Type horecazaak</label>
-                <select id="pf_type">
+                <select id="pf_type" onchange="Dashboard.toggleOtherBusinessType()">
                   <option value="">— Kies type —</option>
                   <option>Restaurant</option><option>Café/Bar</option><option>Hotel</option>
                   <option>Fastfood/Snackbar</option><option>Catering</option><option>Overig</option>
                 </select>
               </div>
+              <div class="field" id="pfTypeOtherField" style="display:none"><label>Welk type horecazaak?</label><input type="text" id="pf_type_other" placeholder="Bijv. strandpaviljoen"></div>
               <div class="field"><label>Vestigingsplaats</label><input type="text" id="pf_city" placeholder="Stad"></div>
-              <div class="field"><label>Jaaromzet</label>
-                <select id="pf_turnover">
-                  <option value="">— Kies range —</option>
-                  <option>Minder dan € 100.000</option><option>€ 100.000 – € 250.000</option>
-                  <option>€ 250.000 – € 450.000</option><option>€ 450.000 – € 750.000</option>
-                  <option>€ 750.000 – € 1.500.000</option><option>Meer dan € 1.500.000</option>
-                </select>
-              </div>
-              <div class="field"><label>Aantal vestigingen</label><input type="number" id="pf_locations" min="1" placeholder="1"></div>
               <div class="field"><label>KVK-nummer</label><input type="text" id="pf_kvk" placeholder="12345678" autocomplete="on"></div>
             </div>
             <div style="display:flex;gap:10px;margin-top:20px">
@@ -686,7 +679,7 @@
           </div>
           <div class="table-wrap"><table class="table">
             <thead><tr>
-              <th>Onderneming</th><th>Type / plaats</th><th>Vest.</th><th>1e subgroep</th><th># subgroepen</th>
+              <th>Onderneming</th><th>Type / plaats</th><th>1e subgroep</th><th># subgroepen</th>
               <th>Jaarkosten</th><th>Potentieel</th><th>Overstap</th><th>Leadscore</th><th>Fase</th><th>Volgende actie</th>
             </tr></thead>
             <tbody id="admLeadTable"></tbody>
@@ -838,4 +831,3 @@
     <div id="detailModalContent"></div>
   </div>
 </div>
-
