@@ -389,7 +389,7 @@ function euro(n){ return new Intl.NumberFormat("nl-NL",{style:"currency",currenc
 function defaultState(){
   return {
     profile: { businessType:"Restaurant", businessTypeOther:"", city:"" },
-    selectedSubgroups: ["gas","energie","afval","bier","verzekeringen"],
+    selectedSubgroups: [],
     primary: { subgroupId:"", supplier:"", annualSpend:null, annualSpendUnknown:true, contractStatus:"Onbekend", contractEnd:"Onbekend", willingness:"misschien" },
     method: "upload",
     uploadFileName: "",
@@ -517,7 +517,7 @@ const QuickScan = {
     if(field) field.style.display = document.getElementById("f_businessType").value === "Overig" ? "" : "none";
   },
 
-  selected: new Set(["gas","energie","afval","bier","verzekeringen"]),
+  selected: new Set(),
   renderCategoryTiles(){
     this.selected = new Set(STATE.selectedSubgroups);
     const box = document.getElementById("subgroupChoices");
@@ -802,25 +802,33 @@ const STATUS_LIST = ["Niet van toepassing","Nog niet ingevuld","Basisgegevens in
 
 function hashStr(s){ let h=0; for(let i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i)) >>> 0; } return h; }
 
-function buildSubgroupRows(){
+// Maps Supabase category names to SUBGROUPS ids
+const CATEGORY_TO_SUBGROUP = {
+  "Elektra": "energie", "Gas": "gas", "Verzekeringen": "verzekeringen",
+  "Afval & milieu": "afval", "Telecom": "internet", "Muziekrechten": "muzieklicentie",
+  "Bier": "bier", "Wijn": "wijn", "Fris": "frisdrank", "Vlees": "vlees",
+  "Inkoop (overig)": "foodgroothandel"
+};
+
+function buildSubgroupRows(uploadedSubgroups = new Set(), spendBySubgroup = {}){
   return STATE.selectedSubgroups.map((id,i)=>{
     const isPrimary = id === primarySubgroupId();
     let status, badge;
     if(isPrimary){
       status = Engine.statusLabel(); badge="b-green";
+    } else if(uploadedSubgroups.has(id)){
+      status = "Klaar voor analyse"; badge="b-yellow";
     } else {
-      const h = hashStr(id+STATE.profile.city) % 4;
-      const opts = [
-        ["Nog niet ingevuld","b-grey"],["Basisgegevens ingevuld","b-yellow"],
-        ["Klaar voor analyse","b-yellow"],["Besparingskans gevonden","b-green"]
-      ];
-      [status, badge] = opts[h];
+      status = "Nog niet ingevuld"; badge="b-grey";
     }
-    const kans = isPrimary ? "Hoog" : (hashStr(id) % 3 === 0 ? "Mogelijk" : "Onbekend");
-    const cost = isPrimary ? (STATE.primary.annualSpend || 6000) : Math.round(1500 + (hashStr(id)%40)*350);
+    const kans = isPrimary ? "Hoog" : "Onbekend";
+    const realSpend = spendBySubgroup[id];
+    const cost = isPrimary
+      ? (STATE.primary.annualSpend || realSpend || 0)
+      : (realSpend || 0);
     const supplier = isPrimary ? (STATE.primary.supplier || "Onbekende leverancier") : "—";
     const contractEnd = isPrimary ? (STATE.primary.contractEnd || "Onbekend") : "Onbekend";
-    const missing = isPrimary && STATE.method==="later" ? "Factuur of contract" : (status==="Documenten ontbreken" ? "Factuur" : "—");
+    const missing = isPrimary && STATE.method==="later" ? "Factuur of contract" : "—";
     return {id, name: subgroupName(id), status, badge, kans, cost, supplier, contractEnd, missing, isPrimary};
   });
 }
@@ -853,8 +861,22 @@ const Dashboard = {
     this.render();
     Router.go("dashboard");
   },
-  render(){
-    const rows = buildSubgroupRows();
+  async render(){
+    let uploadedSubgroups = new Set();
+    let spendBySubgroup = {};
+    if(CURRENT_USER){
+      const [{ data: uploads }, { data: txRows }] = await Promise.all([
+        sb.from('uploads').select('subgroup').eq('email', CURRENT_USER.email),
+        sb.from('transactions').select('amount, categories(name)').eq('email', CURRENT_USER.email)
+      ]);
+      if(uploads) uploads.forEach(u => { if(u.subgroup) uploadedSubgroups.add(u.subgroup); });
+      if(txRows) txRows.forEach(t => {
+        const catName = t.categories?.name;
+        const sgId = CATEGORY_TO_SUBGROUP[catName];
+        if(sgId) spendBySubgroup[sgId] = (spendBySubgroup[sgId] || 0) + (t.amount || 0);
+      });
+    }
+    const rows = buildSubgroupRows(uploadedSubgroups, spendBySubgroup);
     document.getElementById("dashCompanyName").textContent =
       CURRENT_USER ? (STATE.account.companyName || CURRENT_USER.email) : (STATE.account.companyName || "Voorbeeld Horecazaak");
     const pct = STATE.result ? STATE.result.profilePct : Engine.profileCompletion();
