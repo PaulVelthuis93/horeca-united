@@ -1329,20 +1329,23 @@ const Dashboard = {
     if (!el) return;
 
     const DEMO_CONTRACTS = [
-      {category:'Verzekeringen', supplier:'De Goudse', period_end:'2027-07-01', amount:5208, notes:'Horeca all-risk polis'},
-      {category:'Elektra', supplier:'Hezelaer Energy', period_end:'2026-01-01', amount:11233, notes:'Jaarafrekening elektriciteit 2025'},
-      {category:'Gas', supplier:'Hezelaer Energy', period_end:'2026-01-01', amount:2394, notes:'Jaarafrekening gas 2025'},
-      {category:'Muziekrechten', supplier:'Buma/Sena', period_end:'2026-12-31', amount:1122, notes:'Buma + Sena licentie 2026'},
-      {category:'Afval & milieu', supplier:'Milieu Service NL', period_end:'2026-09-30', amount:604, notes:'Afvalcontract kwartaal Q3'},
-      {category:'Telecom', supplier:'Odido', period_end:'2028-04-15', amount:498, notes:'Internet 24 mnd contract'},
+      {category:'Verzekeringen', supplier:'De Goudse', period_start:'2026-07-01', period_end:'2027-07-01', amount:5208, notes:'Horeca all-risk polis', has_contract:true},
+      {category:'Elektra', supplier:'Hezelaer Energy', period_start:'2025-01-01', period_end:'2026-01-01', amount:11233, notes:'Jaarafrekening elektriciteit 2025', has_contract:true},
+      {category:'Gas', supplier:'Hezelaer Energy', period_start:'2025-01-01', period_end:'2026-01-01', amount:2394, notes:'Jaarafrekening gas 2025', has_contract:true},
+      {category:'Muziekrechten', supplier:'Buma/Sena', period_start:'2026-01-01', period_end:'2026-12-31', amount:1122, notes:'Buma + Sena licentie 2026', has_contract:true},
+      {category:'Afval & milieu', supplier:'Milieu Service NL', period_start:'2026-07-01', period_end:'2026-09-30', amount:604, notes:'Afvalcontract kwartaal Q3', has_contract:true},
+      {category:'Telecom', supplier:'Odido', period_start:'2026-04-15', period_end:'2028-04-15', amount:498, notes:'Internet 24 mnd contract', has_contract:true},
+      {category:'Inkoop (overig)', supplier:'—', period_start:null, period_end:null, amount:null, notes:'', has_contract:false},
     ];
 
-    const fmt = v => new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);
-    const fmtDate = s => s ? new Date(s).toLocaleDateString('nl-NL',{year:'numeric',month:'long',day:'numeric'}) : '—';
-    const urgencyBadge = s => {
-      if (!s) return '<span class="badge b-grey">Onbekend</span>';
-      const days = (new Date(s) - new Date()) / 86400000;
-      if (days < 60) return '<span class="badge b-red">Binnenkort</span>';
+    const fmt = v => v != null ? new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v) : '—';
+    const fmtDate = s => s ? new Date(s).toLocaleDateString('nl-NL',{year:'numeric',month:'short',day:'numeric'}) : null;
+    const contractBadge = (has_contract, period_end) => {
+      if (!has_contract) return '<span class="badge b-grey">Geen contract</span>';
+      if (!period_end) return '<span class="badge b-grey">Onbekend</span>';
+      const days = (new Date(period_end) - new Date()) / 86400000;
+      if (days < 0)   return '<span class="badge b-grey">Verlopen</span>';
+      if (days < 60)  return '<span class="badge b-red">Binnenkort</span>';
       if (days < 180) return '<span class="badge b-yellow">Let op</span>';
       return '<span class="badge b-green">Lopend</span>';
     };
@@ -1351,37 +1354,78 @@ const Dashboard = {
     let isDemo = false;
 
     if (CURRENT_USER) {
-      const { data, error } = await sb
+      // Haal alle contracteerbare categorieën op
+      const { data: cats } = await sb
+        .from('categories')
+        .select('id, name')
+        .eq('is_contracteerbaar', true)
+        .eq('is_active', true);
+
+      // Haal contractregels op
+      const { data: contractRows } = await sb
         .from('transactions')
-        .select('amount, period_start, period_end, notes, categories(name), suppliers(name)')
+        .select('category_id, amount, period_start, period_end, notes, categories(name), suppliers(name)')
         .eq('email', CURRENT_USER.email)
-        .eq('is_contract', true)
-        .order('period_end', { ascending: true });
-      if (!error && data && data.length) {
-        rows = data.map(r => ({
-          category: r.categories?.name || 'Overig',
-          supplier: r.suppliers?.name || '—',
-          period_start: r.period_start,
-          period_end: r.period_end,
-          amount: parseFloat(r.amount || 0),
-          notes: r.notes || '',
-        }));
-      } else {
-        isDemo = true; rows = DEMO_CONTRACTS;
+        .eq('is_contract', true);
+
+      // Haal alle transacties op voor bedrag-totaal per categorie (ook zonder contract)
+      const { data: allTx } = await sb
+        .from('transactions')
+        .select('category_id, amount')
+        .eq('email', CURRENT_USER.email);
+
+      const totalByCat = {};
+      (allTx || []).forEach(r => {
+        totalByCat[r.category_id] = (totalByCat[r.category_id] || 0) + parseFloat(r.amount || 0);
+      });
+
+      const contractByCat = {};
+      (contractRows || []).forEach(r => {
+        contractByCat[r.category_id] = r;
+      });
+
+      if (cats && cats.length) {
+        rows = cats.map(cat => {
+          const c = contractByCat[cat.id];
+          return {
+            category: cat.name,
+            supplier: c?.suppliers?.name || '—',
+            period_start: c?.period_start || null,
+            period_end: c?.period_end || null,
+            amount: c ? parseFloat(c.amount || 0) : (totalByCat[cat.id] || null),
+            notes: c?.notes || '',
+            has_contract: !!c,
+          };
+        }).sort((a, b) => {
+          // Contracten met naderende einddatum bovenaan, daarna geen contract
+          if (a.has_contract && !b.has_contract) return -1;
+          if (!a.has_contract && b.has_contract) return 1;
+          if (a.period_end && b.period_end) return new Date(a.period_end) - new Date(b.period_end);
+          return a.category.localeCompare(b.category);
+        });
       }
+
+      if (!rows.length) { isDemo = true; rows = DEMO_CONTRACTS; }
     } else {
       isDemo = true; rows = DEMO_CONTRACTS;
     }
 
-    el.innerHTML = (isDemo ? `<p style="font-size:12px;color:var(--muted);font-style:italic;margin:0 0 12px">Voorbeelddata — log in en upload contracten om jouw eigen overzicht te zien.</p>` : '') +
+    el.innerHTML = (isDemo ? `<p style="font-size:12px;color:var(--muted);font-style:italic;margin:0 0 12px">Voorbeelddata — log in en upload facturen om jouw eigen overzicht te zien.</p>` : '') +
       `<table class="table"><thead><tr><th>Categorie</th><th>Leverancier</th><th>Periode</th><th>Bedrag</th><th>Status</th></tr></thead><tbody>` +
-      rows.map(r => `<tr>
-        <td><strong>${r.category}</strong></td>
-        <td>${r.supplier}</td>
-        <td style="white-space:nowrap;font-size:12px">${r.period_start ? fmtDate(r.period_start) + ' – ' : ''}${fmtDate(r.period_end)}</td>
-        <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px">${fmt(r.amount)}</td>
-        <td>${urgencyBadge(r.period_end)}</td>
-      </tr>`).join('') +
+      rows.map(r => {
+        const startStr = fmtDate(r.period_start);
+        const endStr   = fmtDate(r.period_end);
+        const periodeHtml = startStr || endStr
+          ? `<span style="font-size:12px">${startStr ? startStr + ' –<br>' : ''}${endStr || ''}</span>`
+          : `<span style="color:var(--muted);font-size:12px">—</span>`;
+        return `<tr>
+          <td><strong>${r.category}</strong>${r.notes ? `<br><span style="font-size:11px;color:var(--muted)">${r.notes}</span>` : ''}</td>
+          <td>${r.supplier}</td>
+          <td>${periodeHtml}</td>
+          <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px">${fmt(r.amount)}</td>
+          <td>${contractBadge(r.has_contract, r.period_end)}</td>
+        </tr>`;
+      }).join('') +
       `</tbody></table>`;
   },
 
