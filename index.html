@@ -2467,11 +2467,11 @@ const Dashboard = {
 
     const DEMO_CONTRACTS = [
       {category:'Verzekeringen', supplier:'De Goudse', period_end:'2027-07-01', amount:5208, notes:'Horeca all-risk polis'},
-      {category:'Elektra', supplier:'Hezelaer Energy', period_end:'2026-12-31', amount:11233, notes:'Jaarafrekening elektriciteit'},
-      {category:'Gas', supplier:'Hezelaer Energy', period_end:'2026-12-31', amount:2394, notes:'Jaarafrekening gas'},
-      {category:'Telecom', supplier:'Odido', period_end:'2027-04-15', amount:498, notes:'Internet & telefonie'},
-      {category:'Afval & milieu', supplier:'Milieu Service NL', period_end:'2026-09-30', amount:604, notes:'Afvalcontract kwartaal'},
-      {category:'Muziekrechten', supplier:'Buma/Sena', period_end:'2026-12-31', amount:420, notes:'Muzieklicentie 2026'},
+      {category:'Elektra', supplier:'Hezelaer Energy', period_end:'2026-01-01', amount:11233, notes:'Jaarafrekening elektriciteit 2025'},
+      {category:'Gas', supplier:'Hezelaer Energy', period_end:'2026-01-01', amount:2394, notes:'Jaarafrekening gas 2025'},
+      {category:'Muziekrechten', supplier:'Buma/Sena', period_end:'2026-12-31', amount:1122, notes:'Buma + Sena licentie 2026'},
+      {category:'Afval & milieu', supplier:'Milieu Service NL', period_end:'2026-09-30', amount:604, notes:'Afvalcontract kwartaal Q3'},
+      {category:'Telecom', supplier:'Odido', period_end:'2028-04-15', amount:498, notes:'Internet 24 mnd contract'},
     ];
 
     const fmt = v => new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);
