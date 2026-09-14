@@ -2547,7 +2547,26 @@ const Dashboard = {
       isDemo = true; rows = DEMO_CONTRACTS;
     }
 
+    // Bepaal of er heronderhandelkansen zijn (contract aflopend of geen contract)
+    const kansen = rows.filter(r => {
+      if (!r.has_contract) return true;
+      if (!r.period_end) return false;
+      const days = (new Date(r.period_end) - new Date()) / 86400000;
+      return days < 180;
+    });
+
+    const kansenBanner = !isDemo && kansen.length
+      ? `<div id="dashContractenKansenBanner" style="background:var(--warn-bg);border:1px solid var(--warn-ink);border-radius:8px;padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+          <div>
+            <strong style="color:var(--warn-ink);font-size:13px">${kansen.length} heronderhandelkans${kansen.length > 1 ? 'en' : ''} gevonden</strong>
+            <p style="margin:2px 0 0;font-size:12px;color:var(--ink)">${kansen.map(r => r.category).join(', ')} — aflopend of nog geen contract. Wij onderhandelen collectief voor betere voorwaarden.</p>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="Proposals.registerInterestContracts(${JSON.stringify(kansen.map(r => r.category))}, this)">Stuur mij een voorstel</button>
+        </div>`
+      : '';
+
     el.innerHTML = (isDemo ? `<p style="font-size:12px;color:var(--muted);font-style:italic;margin:0 0 12px">Voorbeelddata — log in en upload facturen om jouw eigen overzicht te zien.</p>` : '') +
+      kansenBanner +
       `<table class="table"><thead><tr><th>Categorie</th><th>Leverancier</th><th>Periode</th><th>Bedrag</th><th>Status</th></tr></thead><tbody>` +
       rows.map(r => {
         const startStr = fmtDate(r.period_start);
@@ -2555,12 +2574,19 @@ const Dashboard = {
         const periodeHtml = startStr || endStr
           ? `<span style="font-size:12px">${startStr ? startStr + ' –<br>' : ''}${endStr || ''}</span>`
           : `<span style="color:var(--muted);font-size:12px">—</span>`;
-        return `<tr>
+        const days = r.period_end ? (new Date(r.period_end) - new Date()) / 86400000 : null;
+        const isKans = !r.has_contract || (days !== null && days < 180);
+        const onderhandelBtn = !isDemo && isKans
+          ? `<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:2px 8px;margin-left:6px"
+               data-category="${r.category}"
+               onclick="Proposals.registerInterestContracts(['${r.category}'], this)">Voorstel</button>`
+          : '';
+        return `<tr${isKans ? ' style="background:rgba(var(--warn-rgb,251,191,36),0.07)"' : ''}>
           <td><strong>${r.category}</strong>${r.notes ? `<br><span style="font-size:11px;color:var(--muted)">${r.notes}</span>` : ''}</td>
           <td>${r.supplier}</td>
           <td>${periodeHtml}</td>
           <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px">${fmt(r.amount)}</td>
-          <td>${contractBadge(r.has_contract, r.period_end)}</td>
+          <td style="white-space:nowrap">${contractBadge(r.has_contract, r.period_end)}${onderhandelBtn}</td>
         </tr>`;
       }).join('') +
       `</tbody></table>`;
@@ -3086,6 +3112,31 @@ const Proposals = {
       statusEl.style.color = 'var(--positive-ink)';
       statusEl.textContent = 'Geregistreerd! Wij nemen binnen 2 werkdagen contact met je op.';
       if (btn) btn.remove();
+    }
+  },
+
+  async registerInterestContracts(categories, triggerBtn) {
+    if (!CURRENT_USER) return;
+    const rows = Array.isArray(categories) ? categories : [categories];
+    if (triggerBtn) { triggerBtn.disabled = true; triggerBtn.textContent = 'Bezig…'; }
+    const inserts = rows.map(cat => ({
+      email: CURRENT_USER.email,
+      category: cat,
+      status: 'contract_interest',
+    }));
+    const { error } = await sb.from('proposals').insert(inserts);
+    if (error) {
+      if (triggerBtn) { triggerBtn.disabled = false; triggerBtn.textContent = 'Voorstel'; }
+      alert('Er ging iets mis: ' + error.message);
+    } else {
+      if (triggerBtn) { triggerBtn.textContent = 'Aangevraagd ✓'; }
+      const kansenBanner = document.getElementById('dashContractenKansenBanner');
+      if (kansenBanner) {
+        let note = kansenBanner.querySelector('.kansen-note');
+        if (!note) { note = document.createElement('p'); note.className = 'kansen-note'; kansenBanner.appendChild(note); }
+        note.style.cssText = 'margin:8px 0 0;font-size:13px;color:var(--positive-ink)';
+        note.textContent = `Interesse geregistreerd voor: ${rows.join(', ')}. We nemen contact op!`;
+      }
     }
   },
 };
