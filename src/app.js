@@ -1139,7 +1139,117 @@ const Dashboard = {
 
     // Show proposal CTA if overspend found
     Proposals.showCTA(bestOpportunity, totalOverspend);
+
+    // Vleesprijs-over-tijd grafiek
+    await this.renderVleesPrijsGrafiek();
   },
+
+  async renderVleesPrijsGrafiek(){
+    const card = document.getElementById('dashVleesPrijsCard');
+    if (!card) return;
+    if (!CURRENT_USER) { card.style.display = 'none'; return; }
+
+    const { data, error } = await sb
+      .from('transactions')
+      .select('transaction_date, amount, quantity, unit, product_name')
+      .eq('email', CURRENT_USER.email)
+      .not('quantity', 'is', null)
+      .not('transaction_date', 'is', null)
+      .order('transaction_date', { ascending: true });
+    if (error || !data) { card.style.display = 'none'; return; }
+
+    // Filter op vlees-categorie via join is al gedaan in renderBesparingen,
+    // maar hier halen we vlees op via categorie join
+    const { data: vleesRows } = await sb
+      .from('transactions')
+      .select('transaction_date, amount, quantity, unit, product_name, categories(name)')
+      .eq('email', CURRENT_USER.email)
+      .not('quantity', 'is', null)
+      .not('transaction_date', 'is', null)
+      .order('transaction_date', { ascending: true });
+
+    const pts = (vleesRows || [])
+      .filter(r => r.categories?.name === 'Vlees' && parseFloat(r.quantity) > 0)
+      .map(r => ({
+        date: r.transaction_date,
+        price: parseFloat(r.amount) / parseFloat(r.quantity),
+        qty: parseFloat(r.quantity),
+        label: r.product_name || 'Vlees',
+      }));
+
+    if (pts.length < 2) { card.style.display = 'none'; return; }
+
+    card.style.display = 'block';
+
+    const minP = Math.min(...pts.map(p => p.price));
+    const maxP = Math.max(...pts.map(p => p.price));
+    const padded = { min: minP * 0.92, max: maxP * 1.08 };
+    const range = padded.max - padded.min || 1;
+
+    const W = 560, H = 160, PL = 48, PR = 16, PT = 12, PB = 32;
+    const chartW = W - PL - PR;
+    const chartH = H - PT - PB;
+
+    const xOf = (i) => PL + (i / (pts.length - 1)) * chartW;
+    const yOf = (p) => PT + chartH - ((p - padded.min) / range) * chartH;
+
+    const polyline = pts.map((p, i) => `${xOf(i).toFixed(1)},${yOf(p.price).toFixed(1)}`).join(' ');
+    const area = `${xOf(0).toFixed(1)},${(PT + chartH).toFixed(1)} ` +
+      pts.map((p, i) => `${xOf(i).toFixed(1)},${yOf(p.price).toFixed(1)}`).join(' ') +
+      ` ${xOf(pts.length-1).toFixed(1)},${(PT + chartH).toFixed(1)}`;
+
+    const fmtEur = v => `€${v.toFixed(2).replace('.', ',')}`;
+    const fmtDate = s => { const d = new Date(s); return d.toLocaleDateString('nl-NL', {month:'short', day:'numeric'}); };
+
+    // Y-axis ticks
+    const ticks = 4;
+    const yTicks = Array.from({length: ticks + 1}, (_, i) => padded.min + (range * i / ticks));
+
+    // X-axis labels (max 6 spread)
+    const xIdxs = pts.length <= 6
+      ? pts.map((_, i) => i)
+      : [0, Math.floor(pts.length/4), Math.floor(pts.length/2), Math.floor(pts.length*3/4), pts.length - 1];
+
+    // Trend kleur
+    const trend = pts[pts.length-1].price - pts[0].price;
+    const trendColor = trend > 0.5 ? 'var(--danger-ink)' : trend < -0.5 ? 'var(--positive-ink)' : 'var(--muted)';
+    const trendLabel = trend > 0.5 ? `+${fmtEur(trend)}/kg stijging` : trend < -0.5 ? `${fmtEur(trend)}/kg daling` : 'Stabiel';
+
+    const el = document.getElementById('dashVleesPrijsChart');
+    if (!el) return;
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+        <span style="font-size:13px;font-weight:600;color:var(--ink)">Inkoopprijs vlees per kg</span>
+        <span style="font-size:12px;color:${trendColor}">${trendLabel}</span>
+      </div>
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;overflow:visible">
+        <defs>
+          <linearGradient id="vleesFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#163829" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#163829" stop-opacity="0.02"/>
+          </linearGradient>
+        </defs>
+        <!-- Grid lines -->
+        ${yTicks.map(t => `<line x1="${PL}" y1="${yOf(t).toFixed(1)}" x2="${W-PR}" y2="${yOf(t).toFixed(1)}"
+          stroke="var(--line)" stroke-width="1"/>`).join('')}
+        <!-- Area fill -->
+        <polygon points="${area}" fill="url(#vleesFill)"/>
+        <!-- Line -->
+        <polyline points="${polyline}" fill="none" stroke="#163829" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        <!-- Data points -->
+        ${pts.map((p, i) => `<circle cx="${xOf(i).toFixed(1)}" cy="${yOf(p.price).toFixed(1)}" r="3.5"
+          fill="white" stroke="#163829" stroke-width="2">
+          <title>${fmtDate(p.date)}: ${fmtEur(p.price)}/kg (${p.label})</title>
+        </circle>`).join('')}
+        <!-- Y-axis labels -->
+        ${yTicks.map(t => `<text x="${PL - 6}" y="${(yOf(t) + 4).toFixed(1)}"
+          text-anchor="end" font-size="10" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${fmtEur(t)}</text>`).join('')}
+        <!-- X-axis labels -->
+        ${xIdxs.map(i => `<text x="${xOf(i).toFixed(1)}" y="${(PT + chartH + 18).toFixed(1)}"
+          text-anchor="middle" font-size="10" fill="var(--muted)">${fmtDate(pts[i].date)}</text>`).join('')}
+      </svg>`;
+  },
+
   async renderOverzicht(){
     if (!CURRENT_USER) return; // demo summary already shown by render()
     const { data, error } = await sb
@@ -1219,11 +1329,12 @@ const Dashboard = {
     if (!el) return;
 
     const DEMO_CONTRACTS = [
-      {category:'Verzekeringen', supplier:'De Goudse', period_end:'2027-07-01', amount:3240, notes:'Horeca all-risk polis'},
-      {category:'Gas', supplier:'Hezelaer Energy', period_end:'2027-01-01', amount:2394, notes:'Jaarafrekening gas'},
-      {category:'Elektra', supplier:'Hezelaer Energy', period_end:'2027-01-01', amount:11233, notes:'Jaarafrekening elektriciteit'},
-      {category:'Telecom', supplier:'Odido', period_end:'2027-01-01', amount:960, notes:'Internet & telefonie'},
-      {category:'Afval & milieu', supplier:'Milieu Service NL', period_end:'2026-12-31', amount:604, notes:'Afvalcontract kwartaal'},
+      {category:'Verzekeringen', supplier:'De Goudse', period_end:'2027-07-01', amount:5208, notes:'Horeca all-risk polis'},
+      {category:'Elektra', supplier:'Hezelaer Energy', period_end:'2026-12-31', amount:11233, notes:'Jaarafrekening elektriciteit'},
+      {category:'Gas', supplier:'Hezelaer Energy', period_end:'2026-12-31', amount:2394, notes:'Jaarafrekening gas'},
+      {category:'Telecom', supplier:'Odido', period_end:'2027-04-15', amount:498, notes:'Internet & telefonie'},
+      {category:'Afval & milieu', supplier:'Milieu Service NL', period_end:'2026-09-30', amount:604, notes:'Afvalcontract kwartaal'},
+      {category:'Muziekrechten', supplier:'Buma/Sena', period_end:'2026-12-31', amount:420, notes:'Muzieklicentie 2026'},
     ];
 
     const fmt = v => new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(v);
