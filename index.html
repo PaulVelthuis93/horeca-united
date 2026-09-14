@@ -2490,14 +2490,15 @@ const Dashboard = {
     if (CURRENT_USER) {
       const { data, error } = await sb
         .from('transactions')
-        .select('amount, period_end, notes, source, categories(name), suppliers(name)')
+        .select('amount, period_start, period_end, notes, categories(name), suppliers(name)')
         .eq('email', CURRENT_USER.email)
-        .not('period_end', 'is', null)
+        .eq('is_contract', true)
         .order('period_end', { ascending: true });
       if (!error && data && data.length) {
         rows = data.map(r => ({
           category: r.categories?.name || 'Overig',
           supplier: r.suppliers?.name || '—',
+          period_start: r.period_start,
           period_end: r.period_end,
           amount: parseFloat(r.amount || 0),
           notes: r.notes || '',
@@ -2510,11 +2511,11 @@ const Dashboard = {
     }
 
     el.innerHTML = (isDemo ? `<p style="font-size:12px;color:var(--muted);font-style:italic;margin:0 0 12px">Voorbeelddata — log in en upload contracten om jouw eigen overzicht te zien.</p>` : '') +
-      `<table class="table"><thead><tr><th>Categorie</th><th>Leverancier</th><th>Einddatum</th><th>Jaarbedrag</th><th>Status</th></tr></thead><tbody>` +
+      `<table class="table"><thead><tr><th>Categorie</th><th>Leverancier</th><th>Periode</th><th>Bedrag</th><th>Status</th></tr></thead><tbody>` +
       rows.map(r => `<tr>
         <td><strong>${r.category}</strong></td>
         <td>${r.supplier}</td>
-        <td style="white-space:nowrap">${fmtDate(r.period_end)}</td>
+        <td style="white-space:nowrap;font-size:12px">${r.period_start ? fmtDate(r.period_start) + ' – ' : ''}${fmtDate(r.period_end)}</td>
         <td style="font-family:'IBM Plex Mono',monospace;font-size:12.5px">${fmt(r.amount)}</td>
         <td>${urgencyBadge(r.period_end)}</td>
       </tr>`).join('') +
