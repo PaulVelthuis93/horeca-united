@@ -6,7 +6,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
 
 const SYSTEM_PROMPT = `Je bent een expert in het extraheren van kostendata uit Nederlandse bedrijfsdocumenten voor horecaondernemers.
 
@@ -88,37 +88,70 @@ Deno.serve(async (req: Request) => {
   }
 
   const fileBytes = await fileData.arrayBuffer();
-  const base64File = btoa(String.fromCharCode(...new Uint8Array(fileBytes)));
+  const uint8 = new Uint8Array(fileBytes);
+  let binary = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < uint8.length; i += chunkSize) {
+    binary += String.fromCharCode(...uint8.subarray(i, i + chunkSize));
+  }
+  const base64File = btoa(binary);
   const mimeType = file_path.toLowerCase().endsWith(".pdf") ? "application/pdf" : "image/jpeg";
 
-  // Call Gemini 2.5 Flash
-  const geminiResponse = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{
-        parts: [
+  // Call Gemini with retry on 503 overload (max 3 attempts, exponential backoff)
+  const MAX_RETRIES = 3;
+  let geminiData: Record<string, unknown> | null = null;
+  let overloadCount = 0;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const geminiResponse = await fetch(`${GEMINI_URL}?key=${GEMINI_API_KEY}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [
           { text: SYSTEM_PROMPT },
           { inline_data: { mime_type: mimeType, data: base64File } },
-        ],
-      }],
-      generationConfig: {
-        temperature: 0.1,
-        responseMimeType: "application/json",
-      },
-    }),
-  });
+        ]}],
+        generationConfig: { temperature: 0.1, responseMimeType: "application/json" },
+      }),
+    });
 
-  if (!geminiResponse.ok) {
-    const err = await geminiResponse.text();
-    return new Response(JSON.stringify({ error: "Gemini fout: " + err }), {
+    if (geminiResponse.ok) {
+      geminiData = await geminiResponse.json();
+      break;
+    }
+
+    const errBody = await geminiResponse.json().catch(() => ({})) as Record<string, unknown>;
+    const errCode = (errBody?.error as Record<string, unknown>)?.code;
+
+    if (errCode === 503) {
+      overloadCount++;
+      // Log overload event for monitoring
+      await sb.from("extracted_data").upsert({
+        email,
+        upload_id: upload_id ?? null,
+        status: "overload_retry",
+        notes: `Gemini overbelast: poging ${attempt}/${MAX_RETRIES} (${new Date().toISOString()})`,
+        submitted_at: new Date().toISOString().slice(0, 10),
+      }, { onConflict: "upload_id" });
+
+      if (attempt < MAX_RETRIES) {
+        await new Promise(r => setTimeout(r, attempt * 8000)); // 8s, 16s
+        continue;
+      }
+      return new Response(JSON.stringify({
+        error: "Gemini overbelast na 3 pogingen",
+        overload_retries: overloadCount,
+      }), { status: 503, headers: { "Content-Type": "application/json" } });
+    }
+
+    return new Response(JSON.stringify({ error: "Gemini fout", details: errBody }), {
       status: 502,
       headers: { "Content-Type": "application/json" },
     });
   }
 
-  const geminiData = await geminiResponse.json();
-  const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text ?? "[]";
+  const rawText = (geminiData as Record<string, unknown>)
+    ?.candidates?.[0]?.content?.parts?.[0]?.text ?? "[]";
 
   let extracted: Record<string, unknown>[];
   try {
