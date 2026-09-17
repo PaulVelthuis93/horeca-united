@@ -6,8 +6,9 @@
 |---|---|
 | `send-upload-confirmation` | Stuur bevestigingsmail aan gebruiker na upload |
 | `notify-proposal` | Stuur intern bericht bij nieuw voorstel- of contractverzoek |
+| `extract-pdf` | Lees PDF uit storage, extraheer kostendata via Gemini, sla op als transacties |
 
-Beide functies worden automatisch gedeployed via GitHub Actions wanneer je naar `main` pusht en bestanden onder `supabase/functions/` zijn gewijzigd.
+Alle functies worden automatisch gedeployed via GitHub Actions wanneer je naar `main` pusht en bestanden onder `supabase/functions/` zijn gewijzigd.
 
 ---
 
@@ -60,11 +61,20 @@ De functies zelf hebben runtime-secrets nodig. Stel deze in via de Supabase dash
 | `GMAIL_APP_PASSWORD` | App Password uit stap 2 |
 | `INTERNAL_NOTIFY_EMAIL` | Adres voor interne meldingen (bijv. `paul@horeca-united.nl`) |
 
+Voor `extract-pdf` voeg ook toe:
+
+| Naam | Waarde |
+|---|---|
+| `GEMINI_API_KEY` | API key van [aistudio.google.com](https://aistudio.google.com) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key uit Supabase → Settings → API |
+
 **Via CLI (alternatief):**
 ```bash
-supabase secrets set GMAIL_USER=info@horeca-united.nl --project-ref yyvzqnjumnpotawnrvfw
-supabase secrets set GMAIL_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx --project-ref yyvzqnjumnpotawnrvfw
-supabase secrets set INTERNAL_NOTIFY_EMAIL=paul@horeca-united.nl --project-ref yyvzqnjumnpotawnrvfw
+supabase secrets set GMAIL_USER=<jouw-gmail> --project-ref <project-ref>
+supabase secrets set GMAIL_APP_PASSWORD=<app-password> --project-ref <project-ref>
+supabase secrets set INTERNAL_NOTIFY_EMAIL=<intern-adres> --project-ref <project-ref>
+supabase secrets set GEMINI_API_KEY=<gemini-key> --project-ref <project-ref>
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY=<service-role-key> --project-ref <project-ref>
 ```
 
 ---
@@ -77,11 +87,13 @@ Na het instellen van alle secrets, push naar `main` om de GitHub Actions workflo
 git push origin main
 ```
 
-Of deploy handmatig via CLI:
+Of deploy handmatig via CLI (sla access token op in `.env.local`, staat in `.gitignore`):
 
 ```bash
-supabase functions deploy send-upload-confirmation --project-ref yyvzqnjumnpotawnrvfw
-supabase functions deploy notify-proposal --project-ref yyvzqnjumnpotawnrvfw
+source .env.local   # bevat SUPABASE_ACCESS_TOKEN=<jouw-token>
+supabase functions deploy send-upload-confirmation --project-ref <project-ref>
+supabase functions deploy notify-proposal --project-ref <project-ref>
+supabase functions deploy extract-pdf --project-ref <project-ref>
 ```
 
 ---
@@ -111,3 +123,46 @@ Na de deploy kun je de functies testen via de Supabase dashboard:
   "type": "contract_interest"
 }
 ```
+
+**Test body voor `extract-pdf`:**
+```json
+{
+  "file_path": "<email-gebruiker>/<timestamp>_<bestandsnaam>.pdf",
+  "upload_id": "<uuid-uit-uploads-tabel>",
+  "email": "gebruiker@example.com",
+  "name": "Bedrijfsnaam"
+}
+```
+
+---
+
+## Admin: PDF opnieuw verwerken
+
+Als een PDF al verwerkt is en je wil hem opnieuw door Gemini sturen (bijv. na een prompt-update), gebruik dan `"force": true`. Dit **verwijdert eerst de bestaande transacties** voor die upload en verwerkt hem opnieuw.
+
+```json
+{
+  "file_path": "<email-gebruiker>/<timestamp>_<bestandsnaam>.pdf",
+  "upload_id": "<uuid-uit-uploads-tabel>",
+  "email": "gebruiker@example.com",
+  "name": "Bedrijfsnaam",
+  "force": true
+}
+```
+
+Zonder `force` geeft de functie `{"skipped": true, "existing": N}` terug als er al transacties zijn.
+
+---
+
+## Monitoring overbelasting
+
+Als Gemini overbelast is (HTTP 503) probeert de functie automatisch 3 keer met 8s en 16s wachttijd. Als alle pogingen mislukken wordt een rij aangemaakt in `extracted_data` met `status = 'overload_retry'` zodat je dit kunt monitoren:
+
+```sql
+SELECT email, upload_id, notes, created_at
+FROM extracted_data
+WHERE status = 'overload_retry'
+ORDER BY created_at DESC;
+```
+
+Herverwijk mislukte uploads daarna handmatig met de `force`-optie hierboven.
