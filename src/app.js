@@ -1647,8 +1647,7 @@ const Dashboard = {
       saveState();
       this.render();
       this.renderDocuments();
-      // TODO: bevestigingsemail via Resend (RESEND_API_KEY in Supabase env vars)
-      // sb.functions.invoke('send-upload-confirmation', { body: { email, name, fileNames: uploadedNames, fileCount: uploadedCount } })
+      sb.functions.invoke('send-upload-confirmation', { body: { email, name, fileNames: uploadedNames, fileCount: uploadedCount } });
     } catch(err) {
       statusEl.style.color = "var(--danger-ink)";
       statusEl.textContent = "Upload mislukt: " + err.message;
@@ -1975,6 +1974,12 @@ const Proposals = {
       statusEl.style.color = 'var(--positive-ink)';
       statusEl.textContent = 'Geregistreerd! Wij nemen binnen 2 werkdagen contact met je op.';
       if (btn) btn.remove();
+      sb.functions.invoke('notify-proposal', { body: {
+        email: CURRENT_USER.email,
+        categories: [this._opportunity.category],
+        type: 'benchmark_interest',
+        estimatedSaving: Math.round(this._totalOverspend),
+      }});
     }
   },
 
@@ -1993,6 +1998,11 @@ const Proposals = {
       alert('Er ging iets mis: ' + error.message);
     } else {
       if (triggerBtn) { triggerBtn.textContent = 'Aangevraagd ✓'; }
+      sb.functions.invoke('notify-proposal', { body: {
+        email: CURRENT_USER.email,
+        categories: rows,
+        type: 'contract_interest',
+      }});
       const kansenBanner = document.getElementById('dashContractenKansenBanner');
       if (kansenBanner) {
         let note = kansenBanner.querySelector('.kansen-note');
