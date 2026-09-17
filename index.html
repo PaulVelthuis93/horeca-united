@@ -1805,6 +1805,12 @@ const QuickScan = {
           await saveExtractedData(email, name, uploadedPaths, this._excelExtraction);
         }catch(err){ console.warn("Excel kon niet worden verwerkt:", err); }
       }
+      // PDF-bestanden verwerken via Gemini (fire-and-forget)
+      const pdfFiles = this._stagedFiles.filter(f => /\.pdf$/i.test(f.name));
+      for(let i = 0; i < pdfFiles.length; i++){
+        const pdfPath = uploadedPaths[this._stagedFiles.indexOf(pdfFiles[i])];
+        if(pdfPath) sb.functions.invoke('extract-pdf', { body: { file_path: pdfPath, email, name } });
+      }
     }
     this._stagedFiles = [];
     document.getElementById("uploadFileList").innerHTML = `<span class="hint" style="color:var(--positive-ink)">Documenten opgeslagen.</span>`;
@@ -2767,11 +2773,13 @@ const Dashboard = {
       for(let i = 0; i < this._stagedFiles.length; i++){
         const file = this._stagedFiles[i];
         const subgroup = document.getElementById(`docStagingSg_${i}`).value || null;
-        await uploadToSupabase(file, name || null, email, subgroup);
+        const filePath = await uploadToSupabase(file, name || null, email, subgroup);
         if(!STATE.uploadFileName) STATE.uploadFileName = file.name;
         if (/\.xlsx?$/i.test(file.name)) {
           const result = await parseAndSaveExcel(file, email, name);
           totalTransactions += result.aantal;
+        } else if (/\.pdf$/i.test(file.name)) {
+          sb.functions.invoke('extract-pdf', { body: { file_path: filePath, email, name: name || null } });
         }
       }
       const txMsg = totalTransactions > 0 ? ` ${totalTransactions} transactieregels opgeslagen.` : '';
