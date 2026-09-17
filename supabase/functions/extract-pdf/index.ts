@@ -48,10 +48,27 @@ Deno.serve(async (req: Request) => {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const { file_path, upload_id, email, name } = await req.json();
+  const body = await req.json();
+
+  // Accepteer zowel directe aanroep als Supabase database webhook (body.record)
+  const record = body.record ?? body;
+  const { file_path, upload_id, email, name } = {
+    file_path: record.file_path,
+    upload_id: record.id ?? record.upload_id,
+    email: record.email,
+    name: record.name,
+  };
+
   if (!file_path || !email) {
     return new Response(JSON.stringify({ error: "file_path en email zijn verplicht" }), {
       status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Sla niet-PDF bestanden stilletjes over (webhook vuurt ook voor Excel)
+  if (!file_path.toLowerCase().endsWith(".pdf")) {
+    return new Response(JSON.stringify({ ok: true, skipped: true }), {
       headers: { "Content-Type": "application/json" },
     });
   }
