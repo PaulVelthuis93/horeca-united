@@ -52,11 +52,12 @@ Deno.serve(async (req: Request) => {
 
   // Accepteer zowel directe aanroep als Supabase database webhook (body.record)
   const record = body.record ?? body;
-  const { file_path, upload_id, email, name } = {
+  const { file_path, upload_id, email, name, force } = {
     file_path: record.file_path,
     upload_id: record.id ?? record.upload_id,
     email: record.email,
     name: record.name,
+    force: body.force === true, // admin-only: verwijder bestaande transacties en verwerk opnieuw
   };
 
   if (!file_path || !email) {
@@ -168,6 +169,22 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ ok: true, inserted: 0, message: "Geen transacties gevonden" }), {
       headers: { "Content-Type": "application/json" },
     });
+  }
+
+  // Voorkom dubbele verwerking
+  if (upload_id) {
+    const { count } = await sb.from("transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("upload_id", upload_id);
+    if (count && count > 0) {
+      if (!force) {
+        return new Response(JSON.stringify({ ok: true, skipped: true, reason: "Al verwerkt", existing: count }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      // force=true: verwijder bestaande transacties en verwerk opnieuw
+      await sb.from("transactions").delete().eq("upload_id", upload_id);
+    }
   }
 
   // Look up category IDs
